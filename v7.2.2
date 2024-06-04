@@ -1,0 +1,1728 @@
+;****************************************************************************************************************************************************************************
+#Include <My Altered GDIP lib> ;<<<<<<<<<<<<<<<<<<---------------------------     gdip.ahk
+#Include <PopUpWindow_V3> ; At the bottom of the script 
+;****************************************************************************************************************************************************************************
+#SingleInstance, Force
+SetBatchLines, -1
+DetectHiddenWindows, On
+Gdip_Startup()
+
+path := A_ScriptDir "\Radial Menu v7 Data.ini"
+IfNotExist, % path
+	Write_ini_Defaults()
+
+RadialMenuEditor.SetUp()
+
+
+return
+GuiClose:
+GuiContextMenu:
+	MouseGetPos,,, win
+	if( win = CategoryEditWindowClass.Window.Hwnd){
+		CategoryEditWindowClass.Icon := CategoryEditWindowClass.StartIcon
+		CategoryEditWindowClass.Color := CategoryEditWindowClass.StartColor
+		CategoryEditWindowClass.Header := CategoryEditWindowClass.StartHeader
+		CategoryEditWindowClass.Tip := CategoryEditWindowClass.StartTip
+		CategoryEditWindowClass.Window := ""
+		;~ RadialMenuEditor.Window.Show()
+	}else if( win = RadialMenuEditor.Window.Hwnd ){
+		
+		ExitApp
+	}else if( win = CategoryIconEditorClass.Window.Hwnd ){
+		CategoryIconEditorClass.Icon := CategoryIconEditorClass.StartIcon
+		CategoryIconEditorClass.Window := ""
+		;~ CategoryEditWindowClass.Window.Show()
+		
+	}
+	return
+*ESC::ExitApp
+
+TipOff:	;{
+	ToolTip
+	return
+;}
+;&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&;
+;&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&;
+;*****		       New Section             *****;
+;&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&;
+;&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&;
+ResetCategoryData( RadialMenuData , CategoryIndex ){
+	local path := A_ScriptDir "\Radial Menu v7 Data.ini"
+	
+	;~ CategoryIndex := A_Index
+		RadialMenuData.Categories[ CategoryIndex ] := {}
+		RadialMenuData.Categories[ CategoryIndex ].Headers := []
+		
+		Loop, 9	{
+			RadialMenuData.Categories[ CategoryIndex ].Headers[ A_Index ] := ""
+			IniWrite, % RadialMenuData.Categories[ CategoryIndex ].Headers[ A_Index ] , % path , % "Category_" CategoryIndex "_Headers" , % A_Index
+			ToolTip, % "Step: " ++StepCount " / Total Steps: " totalCount
+		}
+		
+		
+		RadialMenuData.Categories[ CategoryIndex ].Icons := []
+		Loop, 9	{
+			RadialMenuData.Categories[ CategoryIndex ].Icons[ A_Index ] := ""
+			IniWrite, % RadialMenuData.Categories[ CategoryIndex ].Icons[ A_Index ] , % path , % "Category_" CategoryIndex "_Icons" , % A_Index
+			ToolTip, % "Step: " ++StepCount " / Total Steps: " totalCount
+		}
+		
+		Loop, 9	{
+			SubCategoryIndex := A_Index
+			RadialMenuData.Categories[ CategoryIndex ][ SubCategoryIndex ] := {}
+			
+			RadialMenuData.Categories[ CategoryIndex ][ SubCategoryIndex ].OutputString := ""
+			IniWrite, % RadialMenuData.Categories[ CategoryIndex ][ SubCategoryIndex ].OutputString , % path , % "Category_" CategoryIndex "_" SubCategoryIndex "_OutputString" , OutputString
+			ToolTip, % "Step: " ++StepCount " / Total Steps: " totalCount
+			
+			
+			Loop, 5	{
+				StepIndex := A_Index 
+				RadialMenuData.Categories[ CategoryIndex ][ SubCategoryIndex ][ StepIndex ] := {}
+				
+				RadialMenuData.Categories[ CategoryIndex ][ SubCategoryIndex ][ StepIndex ].StepHeader := ""
+				IniWrite, % RadialMenuData.Categories[ CategoryIndex ][ SubCategoryIndex ][ StepIndex ].StepHeader , % path , % "Category_" CategoryIndex "_" SubCategoryIndex "_" StepIndex "_StepHeader" , StepHeader
+				ToolTip, % "Step: " ++StepCount " / Total Steps: " totalCount
+				
+				RadialMenuData.Categories[ CategoryIndex ][ SubCategoryIndex ][ StepIndex ].Headers := []
+				Loop, 9	{
+					RadialMenuData.Categories[ CategoryIndex ][ SubCategoryIndex ][ StepIndex ].Headers[ A_Index ] := ""
+					IniWrite, % RadialMenuData.Categories[ CategoryIndex ][ SubCategoryIndex ][ StepIndex ].Headers[ A_Index ] , % path , % "Category_" CategoryIndex "_" SubCategoryIndex "_" StepIndex "_Headers" , % A_Index
+					ToolTip, % "Step: " ++StepCount " / Total Steps: " totalCount
+					
+				}
+				
+				RadialMenuData.Categories[ CategoryIndex ][ SubCategoryIndex ][ StepIndex ].Icons := []
+				Loop, 9	{
+					RadialMenuData.Categories[ CategoryIndex ][ SubCategoryIndex ][ StepIndex ].Icons[ A_Index ] := ""
+					IniWrite, % RadialMenuData.Categories[ CategoryIndex ][ SubCategoryIndex ][ StepIndex ].Icons[ A_Index ] , % path , % "Category_" CategoryIndex "_" SubCategoryIndex "_" StepIndex "_Icons" , % A_Index
+					ToolTip, % "Step: " ++StepCount " / Total Steps: " totalCount
+				}
+				
+				RadialMenuData.Categories[ CategoryIndex ][ SubCategoryIndex ][ StepIndex ].Values := []
+				Loop, 9	{
+					RadialMenuData.Categories[ CategoryIndex ][ SubCategoryIndex ][ StepIndex ].Values[ A_Index ] := ""
+					IniWrite, % RadialMenuData.Categories[ CategoryIndex ][ SubCategoryIndex ][ StepIndex ].Values[ A_Index ] , % path , % "Category_" CategoryIndex "_" SubCategoryIndex "_" StepIndex "_Values" , % A_Index
+					ToolTip, % "Step: " ++StepCount " / Total Steps: " totalCount
+				}
+				
+				RadialMenuData.Categories[ CategoryIndex ][ SubCategoryIndex ][ StepIndex ].Type := ""
+				IniWrite, % RadialMenuData.Categories[ CategoryIndex ][ SubCategoryIndex ][ StepIndex ].Type , % path , % "Category_" CategoryIndex "_" SubCategoryIndex "_" StepIndex "_Type" , StepType
+				ToolTip, % "Step: " ++StepCount " / Total Steps: " totalCount
+			}
+		}
+}
+;&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&;
+;&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&;
+;*****		       New Section             *****;
+;&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&;
+;&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&;
+
+GuiDropFiles:	;{
+	MouseGetPos,,, win
+	if( win = CategoryIconEditorClass.Window.Hwnd ){
+		typeList := "png|jpg"
+		if( instr( typeList , subStr( A_GuiEvent , StrLen( A_GuiEvent ) - 2 ) ) ){
+			OpBitmap := Gdip_CreateBitmapFromFile( A_GuiEvent )
+			width := Gdip_GetImageWidth( OpBitmap )
+			height := Gdip_GetImageHeight( OpBitmap )
+			pBitmap := Gdip_CreateBitmap( 64 , 64 )
+			G := Gdip_GraphicsFromImage( pBitmap )
+			Gdip_SetInterpolationMode( G , 7 )
+			Gdip_DrawImage( G , OpBitmap , 0 , 0 , 64 , 64 )
+			Gdip_DisposeImage( OpBitmap )
+			Gdip_DeleteGraphics( G )
+			CategoryIconEditorClass.Icon := Gdip_EncodeBitmapTo64string( pBitmap , "png" )
+			Gdip_DisposeImage( pBitmap )
+			CategoryIconEditorClass.Window.Controls.IconButton.DrawBitmap( CategoryIconEditorClass._Create_Graphics_IconButton() , { X: 0 , Y: 0 , W: CategoryIconEditorClass.Window.Controls.IconButton.W , H: CategoryIconEditorClass.Window.Controls.IconButton.H } , dispose := 1 , autoUpdate := 1 )
+			
+		}
+		
+	}
+
+	return
+;}
+
+;&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&;
+;&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&;
+;*****		       New Section             *****;
+;&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&;
+;&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&;
+class CategoryIconEditorClass	{
+	
+	_Click( w , l , msg , hwnd ){
+		if( This.Window.ControlHandles[ hwnd ] ){
+			try{
+				This[ "_Goto_____" This.Window.ControlHandles[ hwnd ].Name ]()
+			}
+			return 0
+		}
+	}
+	_Goto_____ResetButton(){
+		MsgBox, 262148, Reset Icon, Delete This Icon?
+		IfMsgBox, yes
+		{
+			This.Icon := ""
+			This.Window.Controls.IconButton.DrawBitmap( CategoryIconEditorClass._Create_Graphics_IconButton() , { X: 0 , Y: 0 , W: This.Window.Controls.IconButton.W , H: This.Window.Controls.IconButton.H } , dispose := 1 , autoUpdate := 1 )
+		}
+	}
+	_Goto_____DragAndDropButton(){
+		typeList := "png|jpg"
+		if( InStr( typeList , SubStr( ClipBoard , Strlen( Clipboard ) - 2 ) ) ){
+			OpBitmap := Gdip_CreateBitmapFromFile( ClipBoard )
+			width := Gdip_GetImageWidth( OpBitmap )
+			if( !width ){
+				Gdip_DisposeImage( OpBitmap )
+				OpBitmap := Gdip_CreateBitmapFromClipboard()
+				width := Gdip_GetImageWidth( OpBitmap )
+			}
+			if( width ){
+				height := Gdip_GetImageHeight( OpBitmap )
+				pBitmap := Gdip_CreateBitmap( 64 , 64 )
+				G := Gdip_GraphicsFromImage( pBitmap )
+				Gdip_SetInterpolationMode( G , 7 )
+				Gdip_DrawImage( G , OpBitmap , 0 , 0 , 64 , 64 )
+				Gdip_DisposeImage( OpBitmap )
+				Gdip_DeleteGraphics( G )
+				This.Icon := Gdip_EncodeBitmapTo64string( pBitmap , "png" )
+				sleep, 30
+				Gdip_DisposeImage( pBitmap )
+				This.Window.Controls.IconButton.ClearWindow()
+				This.Window.Controls.IconButton.DrawBitmap( CategoryIconEditorClass._Create_Graphics_IconButton() , { X: 0 , Y: 0 , W: This.Window.Controls.IconButton.W , H: This.Window.Controls.IconButton.H } , dispose := 1 , autoUpdate := 1 )
+				sleep, 30
+				return 0
+			}
+		}else if( StrLen( ClipBoard ) > 200 ){
+			OpBitmap := B64ToPBitmap( ClipBoard )
+			width := Gdip_GetImageWidth( OpBitmap )
+			if( width ){
+				pBitmap := Gdip_CreateBitmap( 64 , 64 )
+				G := Gdip_GraphicsFromImage( pBitmap )
+				Gdip_SetInterpolationMode( G , 7 )
+				Gdip_DrawImage( G , OpBitmap , 0 , 0 , 64 , 64 )
+				Gdip_DisposeImage( OpBitmap )
+				Gdip_DeleteGraphics( G )
+				This.Icon := Gdip_EncodeBitmapTo64string( pBitmap , "png" )
+				Gdip_DisposeImage( pBitmap )
+				This.Window.Controls.IconButton.ClearWindow()
+				This.Window.Controls.IconButton.DrawBitmap( CategoryIconEditorClass._Create_Graphics_IconButton() , { X: 0 , Y: 0 , W: This.Window.Controls.IconButton.W , H: This.Window.Controls.IconButton.H } , dispose := 1 , autoUpdate := 1 )
+				return 0
+			}
+		}
+	}
+	_Goto_____SaveAndExitButton(){
+		MsgBox, 262148, Save Icon, Save Icon?
+		IfMsgBox, yes 
+		{
+			This.Window := ""
+		}
+	}
+	_Goto_____CancelButton(){
+		This.Icon := This.StartIcon
+		This.Window := ""
+	}
+	Setup( icon , color ){
+		This.StartIcon := icon
+		This.Icon := icon 
+		This.Color := color
+		windowOptions := "+AlwaysOnTop -DPIScale "
+		windowTitle := "Categories Icon Editor Window"
+		windowType := "NormalWindow"
+		windowSettings := { AutoShow: 1 , X: RadialMenuEditor.Window.x + 100 , Y: "Center"  , W: 490 , H: 240 , Color: "22262a" }
+		This.Window := New PopUpWindow_V3( windowOptions , windowTitle , windowType , windowSettings )
+		This.Window.Controls := {}
+		This.Window.ControlHandles := []
+		;***************************************************
+		windowOptions := "+AlwaysOnTop -DPIScale +Parent" This.Window.Hwnd
+		windowTitle := "Drag And Drop Button"
+		windowType := "LayeredWindow"
+		windowSettings := { AutoShow: 1 , X: 0 , Y: 0 , W: 490 , H: 140 }
+		This.Window.Controls.DragAndDropButton := New PopUpWindow_V3( windowOptions , windowTitle , windowType , windowSettings )
+		This.Window.Controls.DragAndDropButton.DrawBitmap( This._Create_Graphics_DragAndDropButton() , { X: 0 , Y: 0 , W: This.Window.Controls.DragAndDropButton.W , H: This.Window.Controls.DragAndDropButton.H } , dispose := 1 , autoUpdate := 1 )
+		This.Window.ControlHandles[ This.Window.Controls.DragAndDropButton.Hwnd ] := This.Window.Controls.DragAndDropButton
+		This.Window.Controls.DragAndDropButton.Index := 1
+		This.Window.Controls.DragAndDropButton.Name := "DragAndDropButton"
+		;***************************************************
+		windowOptions := "+AlwaysOnTop -DPIScale +Parent" This.Window.Hwnd
+		windowTitle := "Icon Button"
+		windowType := "LayeredWindow"
+		windowSettings := { AutoShow: 1 , X: -5 , Y: 140 , W: 100 , H: 100 }
+		This.Window.Controls.IconButton := New PopUpWindow_V3( windowOptions , windowTitle , windowType , windowSettings )
+		This.Window.Controls.IconButton.DrawBitmap( This._Create_Graphics_IconButton() , { X: 0 , Y: 0 , W: This.Window.Controls.IconButton.W , H: This.Window.Controls.IconButton.H } , dispose := 1 , autoUpdate := 1 )
+		This.Window.ControlHandles[ This.Window.Controls.IconButton.Hwnd ] := This.Window.Controls.IconButton
+		This.Window.Controls.IconButton.Index := 1
+		This.Window.Controls.IconButton.Name := "IconButton"
+		;***************************************************
+		windowOptions := "+AlwaysOnTop -DPIScale +Parent" This.Window.Hwnd
+		windowTitle := "Reset Button"
+		windowType := "LayeredWindow"
+		windowSettings := { AutoShow: 1 , X: 95 , Y: 140 , W: 130 , H: 90 }
+		This.Window.Controls.ResetButton := New PopUpWindow_V3( windowOptions , windowTitle , windowType , windowSettings )
+		This.Window.Controls.ResetButton.DrawBitmap( This._Create_Graphics_ResetButton() , { X: 0 , Y: 0 , W: This.Window.Controls.ResetButton.W , H: This.Window.Controls.ResetButton.H } , dispose := 1 , autoUpdate := 1 )
+		This.Window.ControlHandles[ This.Window.Controls.ResetButton.Hwnd ] := This.Window.Controls.ResetButton
+		This.Window.Controls.ResetButton.Index := 1
+		This.Window.Controls.ResetButton.Name := "ResetButton"
+		;***************************************************
+		windowOptions := "+AlwaysOnTop -DPIScale +Parent" This.Window.Hwnd
+		windowTitle := "SaveAndExit Button"
+		windowType := "LayeredWindow"
+		windowSettings := { AutoShow: 1 , X: 225 , Y: 140 , W: 130 , H: 90 }
+		This.Window.Controls.SaveAndExitButton := New PopUpWindow_V3( windowOptions , windowTitle , windowType , windowSettings )
+		This.Window.Controls.SaveAndExitButton.DrawBitmap( This._Create_Graphics_SaveAndExitButton() , { X: 0 , Y: 0 , W: This.Window.Controls.SaveAndExitButton.W , H: This.Window.Controls.SaveAndExitButton.H } , dispose := 1 , autoUpdate := 1 )
+		This.Window.ControlHandles[ This.Window.Controls.SaveAndExitButton.Hwnd ] := This.Window.Controls.SaveAndExitButton
+		This.Window.Controls.SaveAndExitButton.Index := 1
+		This.Window.Controls.SaveAndExitButton.Name := "SaveAndExitButton"
+		;***************************************************
+		windowOptions := "+AlwaysOnTop -DPIScale +Parent" This.Window.Hwnd
+		windowTitle := "Cancel Button"
+		windowType := "LayeredWindow"
+		windowSettings := { AutoShow: 1 , X: 355 , Y: 140 , W: 130 , H: 90 }
+		This.Window.Controls.CancelButton := New PopUpWindow_V3( windowOptions , windowTitle , windowType , windowSettings )
+		This.Window.Controls.CancelButton.DrawBitmap( This._Create_Graphics_CancelButton() , { X: 0 , Y: 0 , W: This.Window.Controls.CancelButton.W , H: This.Window.Controls.CancelButton.H } , dispose := 1 , autoUpdate := 1 )
+		This.Window.ControlHandles[ This.Window.Controls.CancelButton.Hwnd ] := This.Window.Controls.CancelButton
+		This.Window.Controls.CancelButton.Index := 1
+		This.Window.Controls.CancelButton.Name := "CancelButton"
+		;***************************************************
+		if( !This.Index && This.Index := 1 )
+			OnMessage( 0x201 , This._Click.Bind( This ) )
+		;***************************************************
+	}
+	
+	_Create_Graphics_DragAndDropButton( ScaleFactor := 1 ){
+		;Bitmap Created Using: HB Bitmap Maker
+		pBitmap := Gdip_CreateBitmap( 490 * ScaleFactor , 140 * ScaleFactor ) , G := Gdip_GraphicsFromImage( pBitmap ) , Gdip_SetSmoothingMode( G , 2 )
+		Brush := Gdip_BrushCreateSolid( "0xFF22262A" ) , Gdip_FillRectangle( G , Brush , -5 * ScaleFactor , -5 * ScaleFactor , 530 * ScaleFactor , 170 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFF32363A" ) , Gdip_FillRoundedRectangle( G , Brush , 5 * ScaleFactor , 5 * ScaleFactor , 480 * ScaleFactor , 130 * ScaleFactor , 5 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_CreateLineBrushFromRect( 5 * ScaleFactor , 5 * ScaleFactor , 480 * ScaleFactor , 130 * ScaleFactor , "0xFF52565a" , "0xFF000000" , 2 , 1 ) , Pen := Gdip_CreatePenFromBrush( Brush , 1 ) , Gdip_DeleteBrush( Brush ) , Gdip_DrawRoundedRectangle( G , Pen , 5 * ScaleFactor , 5 * ScaleFactor , 480 * ScaleFactor , 130 * ScaleFactor , 5 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		;inner background ( main background grade brush )
+		Brush := Gdip_CreateLineBrushFromRect( 15 * ScaleFactor , 15 * ScaleFactor , 460 * ScaleFactor , 110 * ScaleFactor , "0xFF42464a" , "0xFF22262a" , 2 , 1 ) , Gdip_FillRectangle( G , Brush , 15 * ScaleFactor , 15 * ScaleFactor , 460 * ScaleFactor , 110 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_CreateLineBrushFromRect( 15 * ScaleFactor , 15 * ScaleFactor , 460 * ScaleFactor , 110 * ScaleFactor , "0xFF52565a" , "0xFF12161a" , 2 , 1 ) , Pen := Gdip_CreatePenFromBrush( Brush , 2 ) , Gdip_DeleteBrush( Brush ) , Gdip_DrawRectangle( G , Pen , 15 * ScaleFactor , 15 * ScaleFactor , 460 * ScaleFactor , 110 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		Pen := Gdip_CreatePen( "0xFF22262a" , 2 ) , Gdip_DrawRectangle( G , Pen , 10 * ScaleFactor , 10 * ScaleFactor , 470 * ScaleFactor , 120 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		Pen := Gdip_CreatePen( "0xFF000000" , 1 ) , Gdip_DrawRectangle( G , Pen , 10 * ScaleFactor , 10 * ScaleFactor , 470 * ScaleFactor , 120 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		;eye
+		Brush := Gdip_BrushCreateSolid( "0xFF22262A" ) , Gdip_FillEllipse( G , Brush , 50 * ScaleFactor , 20 * ScaleFactor , 390 * ScaleFactor , 80 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFF22262A" ) , Gdip_FillRoundedRectangle( G , Brush , 40 * ScaleFactor , 40 * ScaleFactor , 410 * ScaleFactor , 40 * ScaleFactor , 5 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFF000000" ) , Gdip_TextToGraphics( G , "Drag / Drop" , "s" 36 * ScaleFactor " Center vCenter Bold c" Brush " x" 23 * ScaleFactor " y" 43 * ScaleFactor  , "segoe ui" , 450 * ScaleFactor , 40 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFFF0F0F0" ) , Gdip_TextToGraphics( G , "Drag / Drop" , "s" 36 * ScaleFactor " Center vCenter Bold c" Brush " x" 20 * ScaleFactor " y" 40 * ScaleFactor  , "segoe ui" , 450 * ScaleFactor , 40 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFFF0F0F0" ) , Gdip_TextToGraphics( G , "*Click here to use the contents of your clipboard*" , "s" 12 * ScaleFactor " Center vCenter Bold c" Brush " x" 20 * ScaleFactor " y" 80 * ScaleFactor  , "segoe ui" , 450 * ScaleFactor , 60 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Gdip_DeleteGraphics( G )
+		return pBitmap
+	}	
+	_Create_Graphics_IconButton( ScaleFactor := 1 ){
+		;Bitmap Created Using: HB Bitmap Maker
+		pBitmap := Gdip_CreateBitmap( 100 * ScaleFactor , 100 * ScaleFactor ) , G := Gdip_GraphicsFromImage( pBitmap ) , Gdip_SetSmoothingMode( G , 2 )
+		Brush := Gdip_CreateLineBrushFromRect( 10 * ScaleFactor , 10 * ScaleFactor , 80 * ScaleFactor , 80 * ScaleFactor , "0xFF52565a" , "0xFF22262a" , 2 , 1 ) , Gdip_FillEllipse( G , Brush , 10 * ScaleFactor , 10 * ScaleFactor , 80 * ScaleFactor , 80 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		;~ Pen := Gdip_CreatePen( "0xFF336699" , 3 ) , Gdip_DrawEllipse( G , Pen , 10 * ScaleFactor , 10 * ScaleFactor , 80 * ScaleFactor , 80 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		Pen := Gdip_CreatePen( "0xFF" This.Color , 3 ) , Gdip_DrawEllipse( G , Pen , 10 * ScaleFactor , 10 * ScaleFactor , 80 * ScaleFactor , 80 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		if( This.Icon ){
+			picBitmap := B64ToPBitmap( This.Icon )
+			Gdip_DrawImage( G , picBitmap , 20 * ScaleFactor , 20 * ScaleFactor , 60 * ScaleFactor , 60 * ScaleFactor ) 
+			Gdip_DisposeImage( picBitmap )
+		}
+		
+		Gdip_DeleteGraphics( G )
+		return pBitmap
+	}
+	_Create_Graphics_ResetButton( ScaleFactor := 1 ){
+		;Bitmap Created Using: HB Bitmap Maker
+		pBitmap := Gdip_CreateBitmap( 130 * ScaleFactor , 90 * ScaleFactor ) , G := Gdip_GraphicsFromImage( pBitmap ) , Gdip_SetSmoothingMode( G , 2 )
+		Brush := Gdip_BrushCreateSolid( "0xFF22262a" ) , Gdip_FillRoundedRectangle( G , Brush , 1 * ScaleFactor , 1 * ScaleFactor , 127 * ScaleFactor , 87 * ScaleFactor , 5 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Pen := Gdip_CreatePen( "0xFF72767a" , 2 ) , Gdip_DrawRoundedRectangle( G , Pen , 1 * ScaleFactor , 1 * ScaleFactor , 127 * ScaleFactor , 87 * ScaleFactor , 5 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		Pen := Gdip_CreatePen( "0xFF02060a" , 1 ) , Gdip_DrawRectangle( G , Pen , 7 * ScaleFactor , 7 * ScaleFactor , 115 * ScaleFactor , 75 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		Brush := Gdip_CreateLineBrushFromRect( 12 * ScaleFactor , 12 * ScaleFactor , 105 * ScaleFactor , 65 * ScaleFactor , "0xFF52565a" , "0xFF22262a" , 2 , 1 ) , Gdip_FillRectangle( G , Brush , 12 * ScaleFactor , 12 * ScaleFactor , 105 * ScaleFactor , 65 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFF22262a" ) , Gdip_FillRoundedRectangle( G , Brush , 17 * ScaleFactor , 30 * ScaleFactor , 95 * ScaleFactor , 30 * ScaleFactor , 5 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFF22262A" ) , Gdip_FillEllipse( G , Brush , 29 * ScaleFactor , 20 * ScaleFactor , 70 * ScaleFactor , 50 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFF000000" ) , Gdip_TextToGraphics( G , "Reset" , "s" 18 * ScaleFactor " Center vCenter Bold c" Brush " x" 19 * ScaleFactor " y" 32 * ScaleFactor  , "Segoe ui" , 95 * ScaleFactor , 30 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFFF0F0F0" ) , Gdip_TextToGraphics( G , "Reset" , "s" 18 * ScaleFactor " Center vCenter Bold c" Brush " x" 17 * ScaleFactor " y" 30 * ScaleFactor  , "Segoe ui" , 95 * ScaleFactor , 30 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Gdip_DeleteGraphics( G )
+		return pBitmap
+	}
+	_Create_Graphics_SaveAndExitButton( ScaleFactor := 1 ){
+		;Bitmap Created Using: HB Bitmap Maker
+		pBitmap := Gdip_CreateBitmap( 130 * ScaleFactor , 90 * ScaleFactor ) , G := Gdip_GraphicsFromImage( pBitmap ) , Gdip_SetSmoothingMode( G , 2 )
+		Brush := Gdip_BrushCreateSolid( "0xFF22262a" ) , Gdip_FillRoundedRectangle( G , Brush , 1 * ScaleFactor , 1 * ScaleFactor , 127 * ScaleFactor , 87 * ScaleFactor , 5 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Pen := Gdip_CreatePen( "0xFF72767a" , 2 ) , Gdip_DrawRoundedRectangle( G , Pen , 1 * ScaleFactor , 1 * ScaleFactor , 127 * ScaleFactor , 87 * ScaleFactor , 5 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		Pen := Gdip_CreatePen( "0xFF02060a" , 1 ) , Gdip_DrawRectangle( G , Pen , 7 * ScaleFactor , 7 * ScaleFactor , 115 * ScaleFactor , 75 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		Brush := Gdip_CreateLineBrushFromRect( 12 * ScaleFactor , 12 * ScaleFactor , 105 * ScaleFactor , 65 * ScaleFactor , "0xFF52565a" , "0xFF22262a" , 2 , 1 ) , Gdip_FillRectangle( G , Brush , 12 * ScaleFactor , 12 * ScaleFactor , 105 * ScaleFactor , 65 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFF22262a" ) , Gdip_FillRoundedRectangle( G , Brush , 17 * ScaleFactor , 30 * ScaleFactor , 95 * ScaleFactor , 30 * ScaleFactor , 5 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFF22262A" ) , Gdip_FillEllipse( G , Brush , 29 * ScaleFactor , 20 * ScaleFactor , 70 * ScaleFactor , 50 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFF000000" ) , Gdip_TextToGraphics( G , "Save And Exit" , "s" 12 * ScaleFactor " Center vCenter Bold c" Brush " x" 19 * ScaleFactor " y" 32 * ScaleFactor  , "Segoe ui" , 95 * ScaleFactor , 30 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFFF0F0F0" ) , Gdip_TextToGraphics( G , "Save And Exit" , "s" 12 * ScaleFactor " Center vCenter Bold c" Brush " x" 17 * ScaleFactor " y" 30 * ScaleFactor  , "Segoe ui" , 95 * ScaleFactor , 30 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Gdip_DeleteGraphics( G )
+		return pBitmap
+	}
+	_Create_Graphics_CancelButton( ScaleFactor := 1 ){
+		;Bitmap Created Using: HB Bitmap Maker
+		pBitmap := Gdip_CreateBitmap( 130 * ScaleFactor , 90 * ScaleFactor ) , G := Gdip_GraphicsFromImage( pBitmap ) , Gdip_SetSmoothingMode( G , 2 )
+		Brush := Gdip_BrushCreateSolid( "0xFF22262a" ) , Gdip_FillRoundedRectangle( G , Brush , 1 * ScaleFactor , 1 * ScaleFactor , 127 * ScaleFactor , 87 * ScaleFactor , 5 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Pen := Gdip_CreatePen( "0xFF72767a" , 2 ) , Gdip_DrawRoundedRectangle( G , Pen , 1 * ScaleFactor , 1 * ScaleFactor , 127 * ScaleFactor , 87 * ScaleFactor , 5 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		Pen := Gdip_CreatePen( "0xFF02060a" , 1 ) , Gdip_DrawRectangle( G , Pen , 7 * ScaleFactor , 7 * ScaleFactor , 115 * ScaleFactor , 75 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		Brush := Gdip_CreateLineBrushFromRect( 12 * ScaleFactor , 12 * ScaleFactor , 105 * ScaleFactor , 65 * ScaleFactor , "0xFF52565a" , "0xFF22262a" , 2 , 1 ) , Gdip_FillRectangle( G , Brush , 12 * ScaleFactor , 12 * ScaleFactor , 105 * ScaleFactor , 65 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFF22262a" ) , Gdip_FillRoundedRectangle( G , Brush , 17 * ScaleFactor , 30 * ScaleFactor , 95 * ScaleFactor , 30 * ScaleFactor , 5 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFF22262A" ) , Gdip_FillEllipse( G , Brush , 29 * ScaleFactor , 20 * ScaleFactor , 70 * ScaleFactor , 50 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFF000000" ) , Gdip_TextToGraphics( G , "Cancel" , "s" 18 * ScaleFactor " Center vCenter Bold c" Brush " x" 19 * ScaleFactor " y" 32 * ScaleFactor  , "Segoe ui" , 95 * ScaleFactor , 30 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFFF0F0F0" ) , Gdip_TextToGraphics( G , "Cancel" , "s" 18 * ScaleFactor " Center vCenter Bold c" Brush " x" 17 * ScaleFactor " y" 30 * ScaleFactor  , "Segoe ui" , 95 * ScaleFactor , 30 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Gdip_DeleteGraphics( G )
+		return pBitmap
+	}
+	_Create_Graphics_IconEditorWindow( ScaleFactor := 1 ){
+		;Bitmap Created Using: HB Bitmap Maker
+		pBitmap := Gdip_CreateBitmap( 500 * ScaleFactor , 260 * ScaleFactor ) , G := Gdip_GraphicsFromImage( pBitmap ) , Gdip_SetSmoothingMode( G , 2 )
+		Brush := Gdip_BrushCreateSolid( "0xFF12161a" ) , Gdip_FillRoundedRectangle( G , Brush , 5 * ScaleFactor , 5 * ScaleFactor , 490 * ScaleFactor , 250 * ScaleFactor , 5 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_CreateLineBrushFromRect( 5 * ScaleFactor , 5 * ScaleFactor , 490 * ScaleFactor , 290 * ScaleFactor , "0xFF52565a" , "0xFF02060a" , 2 , 1 ) , Pen := Gdip_CreatePenFromBrush( Brush , 2 ) , Gdip_DeleteBrush( Brush ) , Gdip_DrawRoundedRectangle( G , Pen , 5 * ScaleFactor , 5 * ScaleFactor , 490 * ScaleFactor , 250 * ScaleFactor , 5 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		;drag and drop area
+		Brush := Gdip_CreateLineBrushFromRect( 10 * ScaleFactor , 10 * ScaleFactor , 480 * ScaleFactor , 140 * ScaleFactor , "0xFF52565a" , "0xFF22262a" , 1 , 1 ) , Gdip_FillRectangle( G , Brush , 10 * ScaleFactor , 10 * ScaleFactor , 480 * ScaleFactor , 140 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFF02060A" ) , Gdip_TextToGraphics( G , "Drag / Drop" , "s" 32 * ScaleFactor " Center vCenter Bold c" Brush " x" 22 * ScaleFactor " y" 54 * ScaleFactor  , "Segoe ui" , 460 * ScaleFactor , 90 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFFffffff" ) , Gdip_TextToGraphics( G , "Drag / Drop" , "s" 32 * ScaleFactor " Center vCenter Bold c" Brush " x" 20 * ScaleFactor " y" 52 * ScaleFactor  , "Segoe ui" , 460 * ScaleFactor , 90 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFFf0f0f0" ) , Gdip_TextToGraphics( G , "Drag / Drop a file or use the contents of your clipboard by clicking here" , "s" 12 * ScaleFactor " Center vCenter Bold c" Brush " x" 20 * ScaleFactor " y" 126 * ScaleFactor  , "Segoe ui" , 460 * ScaleFactor , 7 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Pen := Gdip_CreatePen( "0xFF336699" , 3 ) , Gdip_DrawRectangle( G , Pen , 225 * ScaleFactor , 20 * ScaleFactor , 50 * ScaleFactor , 50 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		Brush := Gdip_BrushCreateSolid( "0xFF336699" ) , Gdip_TextToGraphics( G , "l" , "s" 32 * ScaleFactor " Center vCenter Bold c" Brush " x" 226 * ScaleFactor " y" 26 * ScaleFactor  , "webdings" , 50 * ScaleFactor , 50 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Pen := Gdip_CreatePen( "0xFF12161a" , 1 ) , Gdip_DrawRectangle( G , Pen , 10 * ScaleFactor , 10 * ScaleFactor , 480 * ScaleFactor , 140 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		Pen := Gdip_CreatePen( "0xFF32363a" , 1 ) , Gdip_DrawRectangle( G , Pen , 15 * ScaleFactor , 15 * ScaleFactor , 470 * ScaleFactor , 130 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		;icon background
+		Brush := Gdip_CreateLineBrushFromRect( 20 * ScaleFactor , 162 * ScaleFactor , 80 * ScaleFactor , 80 * ScaleFactor , "0xFF52565a" , "0xFF22262a" , 2 , 1 ) , Gdip_FillEllipse( G , Brush , 20 * ScaleFactor , 162 * ScaleFactor , 80 * ScaleFactor , 80 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Pen := Gdip_CreatePen( "0xFF336699" , 3 ) , Gdip_DrawEllipse( G , Pen , 20 * ScaleFactor , 162 * ScaleFactor , 80 * ScaleFactor , 80 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		picBitmap := Gdip_CreateBitmapFromFile( "C:\Users\CivRe\OneDrive\Pictures\Untitled2.png" ) , Gdip_DrawImage( G , picBitmap , 29 * ScaleFactor , 172 * ScaleFactor , 64 * ScaleFactor , 64 * ScaleFactor , 0 , 0 , 82 , 77 ) , Gdip_DisposeImage( picBitmap )
+		;reset button
+		Brush := Gdip_BrushCreateSolid( "0xFF32363a" ) , Gdip_FillRoundedRectangle( G , Brush , 110 * ScaleFactor , 163 * ScaleFactor , 120 * ScaleFactor , 80 * ScaleFactor , 5 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_CreateLineBrushFromRect( 110 * ScaleFactor , 163 * ScaleFactor , 120 * ScaleFactor , 80 * ScaleFactor , "0xFF52565a" , "0xFF22262a" , 2 , 1 ) , Pen := Gdip_CreatePenFromBrush( Brush , 1 ) , Gdip_DeleteBrush( Brush ) , Gdip_DrawRoundedRectangle( G , Pen , 110 * ScaleFactor , 163 * ScaleFactor , 120 * ScaleFactor , 80 * ScaleFactor , 5 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		Brush := Gdip_CreateLineBrushFromRect( 116 * ScaleFactor , 169 * ScaleFactor , 108 * ScaleFactor , 68 * ScaleFactor , "0xFF52565a" , "0xFF22262a" , 2 , 1 ) , Gdip_FillRectangle( G , Brush , 116 * ScaleFactor , 169 * ScaleFactor , 108 * ScaleFactor , 68 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_CreateLineBrushFromRect( 116 * ScaleFactor , 169 * ScaleFactor , 108 * ScaleFactor , 68 * ScaleFactor , "0xFF72767a" , "0xFF12161a" , 2 , 1 ) , Pen := Gdip_CreatePenFromBrush( Brush , 1 ) , Gdip_DeleteBrush( Brush ) , Gdip_DrawRectangle( G , Pen , 116 * ScaleFactor , 169 * ScaleFactor , 108 * ScaleFactor , 68 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		Brush := Gdip_BrushCreateSolid( "0xFFf0f0f0" ) , Gdip_TextToGraphics( G , "Reset Icon" , "s" 18 * ScaleFactor " Center vCenter Bold c" Brush " x" 116 * ScaleFactor " y" 169 * ScaleFactor  , "Segoe ui" , 108 * ScaleFactor , 68 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		;Save & Exit button
+		Brush := Gdip_BrushCreateSolid( "0xFF32363a" ) , Gdip_FillRoundedRectangle( G , Brush , 239 * ScaleFactor , 163 * ScaleFactor , 120 * ScaleFactor , 80 * ScaleFactor , 5 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_CreateLineBrushFromRect( 239 * ScaleFactor , 163 * ScaleFactor , 120 * ScaleFactor , 80 * ScaleFactor , "0xFF52565a" , "0xFF22262a" , 2 , 1 ) , Pen := Gdip_CreatePenFromBrush( Brush , 1 ) , Gdip_DeleteBrush( Brush ) , Gdip_DrawRoundedRectangle( G , Pen , 239 * ScaleFactor , 163 * ScaleFactor , 120 * ScaleFactor , 80 * ScaleFactor , 5 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		Brush := Gdip_CreateLineBrushFromRect( 245 * ScaleFactor , 169 * ScaleFactor , 108 * ScaleFactor , 68 * ScaleFactor , "0xFF52565a" , "0xFF22262a" , 2 , 1 ) , Gdip_FillRectangle( G , Brush , 245 * ScaleFactor , 169 * ScaleFactor , 108 * ScaleFactor , 68 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_CreateLineBrushFromRect( 245 * ScaleFactor , 169 * ScaleFactor , 108 * ScaleFactor , 68 * ScaleFactor , "0xFF72767a" , "0xFF12161a" , 2 , 1 ) , Pen := Gdip_CreatePenFromBrush( Brush , 1 ) , Gdip_DeleteBrush( Brush ) , Gdip_DrawRectangle( G , Pen , 245 * ScaleFactor , 169 * ScaleFactor , 108 * ScaleFactor , 68 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		Brush := Gdip_BrushCreateSolid( "0xFFf0f0f0" ) , Gdip_TextToGraphics( G , "Save & Exit" , "s" 16 * ScaleFactor " Center vCenter Bold c" Brush " x" 245 * ScaleFactor " y" 169 * ScaleFactor  , "Segoe ui" , 108 * ScaleFactor , 68 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		;Cancel button
+		Brush := Gdip_BrushCreateSolid( "0xFF32363a" ) , Gdip_FillRoundedRectangle( G , Brush , 368 * ScaleFactor , 163 * ScaleFactor , 120 * ScaleFactor , 80 * ScaleFactor , 5 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_CreateLineBrushFromRect( 368 * ScaleFactor , 163 * ScaleFactor , 120 * ScaleFactor , 80 * ScaleFactor , "0xFF52565a" , "0xFF22262a" , 2 , 1 ) , Pen := Gdip_CreatePenFromBrush( Brush , 1 ) , Gdip_DeleteBrush( Brush ) , Gdip_DrawRoundedRectangle( G , Pen , 368 * ScaleFactor , 163 * ScaleFactor , 120 * ScaleFactor , 80 * ScaleFactor , 5 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		Brush := Gdip_CreateLineBrushFromRect( 374 * ScaleFactor , 169 * ScaleFactor , 108 * ScaleFactor , 68 * ScaleFactor , "0xFF52565a" , "0xFF22262a" , 2 , 1 ) , Gdip_FillRectangle( G , Brush , 374 * ScaleFactor , 169 * ScaleFactor , 108 * ScaleFactor , 68 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_CreateLineBrushFromRect( 374 * ScaleFactor , 169 * ScaleFactor , 108 * ScaleFactor , 68 * ScaleFactor , "0xFF72767a" , "0xFF12161a" , 2 , 1 ) , Pen := Gdip_CreatePenFromBrush( Brush , 1 ) , Gdip_DeleteBrush( Brush ) , Gdip_DrawRectangle( G , Pen , 374 * ScaleFactor , 169 * ScaleFactor , 108 * ScaleFactor , 68 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		Brush := Gdip_BrushCreateSolid( "0xFFf0f0f0" ) , Gdip_TextToGraphics( G , "Cancel" , "s" 16 * ScaleFactor " Center vCenter Bold c" Brush " x" 374 * ScaleFactor " y" 169 * ScaleFactor  , "Segoe ui" , 108 * ScaleFactor , 68 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Gdip_DeleteGraphics( G )
+		return pBitmap
+	}
+
+}
+;&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&;
+;&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&;
+;*****		       New Section             *****;
+;&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&;
+;&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&;
+Write_Category_Details( selected , color , header , icon , tip ){
+	local path := A_ScriptDir "\Radial Menu v7 Data.ini"
+	ToolTip, Saving
+	IniWrite, % header , % path , Category_Headers, % selected 
+	IniWrite, % color , % path , Category_Colors, % selected 
+	IniWrite, % icon , % path , Category_Icons, % selected 
+	IniWrite, % tip , % path , Category_Tips, % selected 
+	ToolTip, Done `nSaving
+	sleep, 600
+	ToolTip
+}
+;&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&;
+;&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&;
+;*****		       New Section             *****;
+;&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&;
+;&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&;
+class CategoryEditWindowClass	{
+	
+	_Click( l , w , msg , hwnd ){
+		
+		if( This.Window.ControlHandles[ hwnd ].Name ){
+			cc := This.Window.ControlHandles[ hwnd ].Name
+			This[ "_GoTo___" cc ]()
+		}
+		return 0
+	}
+	_Point_In_ColorButton_Rect( x , y ){
+		Loop, % 19	{
+			cc := This.Window.Controls.ColorButton.SubControls[ A_Index ]
+			if( x >= cc.X && x <= cc.X + cc.W && y >= cc.Y && y <= cc.Y + cc.H )
+				return A_Index
+		}
+		return 0
+	}
+	_GoTo___IconButton(){
+		This.Window.Hide()
+		cc := This.CategoryIconEditor := CategoryIconEditorClass
+		
+		cc.SetUp( This.Icon , This.Color )
+		
+		WinWaitClose, % "ahk_id " cc.Window.Hwnd
+		This.Icon := cc.Icon
+		This.Window.Show()
+		This.Window.Controls.IconButton.ClearWindow()
+		This.Window.Controls.IconButton.DrawBitmap( This._Create_Graphics_IconButton() , { X: 0 , Y: 0 , W: This.Window.Controls.IconButton.W , H: This.Window.Controls.IconButton.H } , dispose := 1 , autoUpdate := 1 )
+		
+		
+	}
+	_GoTo___ColorButton(){
+		
+		CoordMode, Mouse, Client
+		MouseGetPos, x , y
+		x -= This.Window.Controls.ColorButton.X 
+		y -= This.Window.Controls.ColorButton.Y
+		index := This._Point_In_ColorButton_Rect( x , y )
+		if( index ){
+			if( index <= 16 ){
+				cc := This.Window.Controls.ColorButton
+				cc.SelectedControl := index
+				This.Color := This.ColorsArray[ index ]
+				cc.ClearWindow()
+				cc.DrawBitmap( This._Create_Graphics_ColorButton() , { X: 0 , Y: 0 , W: cc.W , H: cc.H } , 1 , 1 )
+			}
+		}
+	}
+	_GoTo___HeaderButton(){
+		This.Window.Hide()
+		InputBox, out , Category Header (Name) , Give this category a name. (max length 30)
+		if( !ErrorLevel ){
+			if( out != "" ){
+				This.Header := trim( out )
+				This.Window.Controls.HeaderButton.ClearWindow()
+				This.Window.Controls.HeaderButton.DrawBitmap( This._Create_Graphics_HeaderButton() , { X: 0 , Y: 0 , W: This.Window.Controls.HeaderButton.W , H: This.Window.Controls.HeaderButton.H } , dispose := 1 , autoUpdate := 1 )
+			}else{
+				MsgBox, 262160, Missing Name, A name for the category is required.
+			}
+		}
+		
+		This.Window.Show()
+	}
+	_GoTo___TipButton(){
+		SoundBeep
+		SoundBeep
+	}
+	_GoTo___ResetButton(){
+		MsgBox, 262195, Reset Category, This action will compleatly erase all data from this category.`nDo you want to erase this category and all of its sub-menus?
+		IfMsgBox, yes 
+		{
+			This.Header := ""
+			This.Icon := ""
+			This.Color := "22262a"
+			This.Tip := ""
+			
+			cc := This.Window.Controls.IconButton
+			cc.ClearWindow()
+			cc.DrawBitmap( This[ "_Create_Graphics_" cc.Name ]( This.Scale , 0 ) , { X: 0 * This.Scale , Y: 0 * This.Scale , W: cc.W * This.Scale , H: cc.H * This.Scale } , dispose := 1 , autoUpdate := 1 )
+			
+			cc := This.Window.Controls.HeaderButton
+			cc.ClearWindow()
+			cc.DrawBitmap( This[ "_Create_Graphics_" cc.Name ]( This.Scale , 0 ) , { X: 0 * This.Scale , Y: 0 * This.Scale , W: cc.W * This.Scale , H: cc.H * This.Scale } , dispose := 1 , autoUpdate := 1 )
+			
+			This.Reset := 1
+			This.Window := ""
+		}
+	}
+	_GoTo___DoneButton(){
+		;~ This.Window.Hide()
+		This.Window := ""
+	}
+	SetUp( Header , Color , Icon , Tip := "" , Scale := 1 ){
+		
+		This.ColorsArray := [ "000000" , "4C4C4C" , "FF0000" , "FF6A00" , "FFD800" , "B6FF00" , "4CFF00" , "00FF21" , "00FF90" , "00FFFF" , "0094FF" , "0026FF" , "4800FF" , "B200FF" , "FF00DC" , "FFFFFF" ]
+		
+		This.Reset := ""
+		
+		This.Header := header
+		This.StartHeader := header
+		This.Color := Color
+		This.StartColor := Color
+		This.Tip := tip
+		This.StartTip := tip
+		This.Icon := icon
+		This.StartIcon := icon
+		This.Scale := scale
+		
+		windowOptions := "+AlwaysOnTop -DPIScale "
+		windowTitle := "Categories Editor Window"
+		windowType := "NormalWindow"
+		;~ windowSettings := { AutoShow: 1 , X: RadialMenuEditor.Window.x + 100 , Y: RadialMenuEditor.Window.y  , W: 395 , H: 655 , Color: "22262a" }
+		windowSettings := { AutoShow: 1 , X: RadialMenuEditor.Window.x + 100 , Y: "Center"  , W: 395 , H: 655 , Color: "22262a" }
+		This.Window := New PopUpWindow_V3( windowOptions , windowTitle , windowType , windowSettings )
+		This.Window.Controls := {}
+		This.Window.ControlHandles := []
+		;***************************************************
+		windowOptions := "+AlwaysOnTop -DPIScale +Parent" This.Window.Hwnd
+		windowTitle := "Icon Button"
+		windowType := "LayeredWindow"
+		windowSettings := { AutoShow: 1 , X: 0 , Y: 0 , W: 200 , H: 200 }
+		This.Window.Controls.IconButton := New PopUpWindow_V3( windowOptions , windowTitle , windowType , windowSettings )
+		This.Window.Controls.IconButton.DrawBitmap( This._Create_Graphics_IconButton() , { X: 0 , Y: 0 , W: This.Window.Controls.IconButton.W , H: This.Window.Controls.IconButton.H } , dispose := 1 , autoUpdate := 1 )
+		This.Window.ControlHandles[ This.Window.Controls.IconButton.Hwnd ] := This.Window.Controls.IconButton
+		This.Window.Controls.IconButton.Index := 1
+		This.Window.Controls.IconButton.Name := "IconButton"
+		;***************************************************
+		windowOptions := "+AlwaysOnTop -DPIScale +Parent" This.Window.Hwnd
+		windowTitle := "Header Button"
+		windowType := "LayeredWindow"
+		windowSettings := { AutoShow: 1 , X: 195 , Y: 0 , W: 200 , H: 200 }
+		This.Window.Controls.HeaderButton := New PopUpWindow_V3( windowOptions , windowTitle , windowType , windowSettings )
+		This.Window.Controls.HeaderButton.DrawBitmap( This._Create_Graphics_HeaderButton() , { X: 0 , Y: 0 , W: This.Window.Controls.HeaderButton.W , H: This.Window.Controls.HeaderButton.H } , dispose := 1 , autoUpdate := 1 )
+		This.Window.ControlHandles[ This.Window.Controls.HeaderButton.Hwnd ] := This.Window.Controls.HeaderButton
+		This.Window.Controls.HeaderButton.Index := 2
+		This.Window.Controls.HeaderButton.Name := "HeaderButton"
+		;***************************************************
+		windowOptions := "+AlwaysOnTop -DPIScale +Parent" This.Window.Hwnd
+		windowTitle := "Color Button"
+		windowType := "LayeredWindow"
+		windowSettings := { AutoShow: 1 , X: 0 , Y: 195 , W: 395 , H: 200 }
+		cc := This.Window.Controls.ColorButton := New PopUpWindow_V3( windowOptions , windowTitle , windowType , windowSettings )
+		cc.DrawBitmap( This._Create_Graphics_ColorButton() , { X: 0 , Y: 0 , W: cc.W , H: cc.H } , dispose := 1 , autoUpdate := 1 )
+		This.Window.ControlHandles[ cc.Hwnd ] := cc
+		cc.Index := 3
+		cc.Name := "ColorButton"
+		cc.SubControls := []
+		cList := ""
+		cc.SelectedControl := ""
+		for k , v in This.ColorsArray	{
+			if( This.Color = This.ColorsArray[ A_Index ] ){
+				cc.SelectedControl := A_Index
+				break
+			}
+		}
+		
+		x := 200 
+		y := 22
+		index := 0
+		Loop, 4	{
+			x := 200
+			Loop, 4	{
+				cc.SubControls[ ++index ] := { X: x , Y: y , W: 30 , H: 30 }
+				x += 40
+			}
+			y += 40
+		}
+		
+		
+		;***************************************************
+		windowOptions := "+AlwaysOnTop -DPIScale +Parent" This.Window.Hwnd
+		windowTitle := "Tip Button"
+		windowType := "LayeredWindow"
+		windowSettings := { AutoShow: 1 , X: 0 , Y: 390 , W: 395 , H: 150 }
+		cc := This.Window.Controls.TipButton := New PopUpWindow_V3( windowOptions , windowTitle , windowType , windowSettings )
+		cc.DrawBitmap( This._Create_Graphics_TipButton() , { X: 0 , Y: 0 , W: cc.W , H: cc.H } , dispose := 1 , autoUpdate := 1 )
+		This.Window.ControlHandles[ cc.Hwnd ] := cc
+		cc.Index := 4
+		cc.Name := "TipButton"
+		;***************************************************
+		windowOptions := "+AlwaysOnTop -DPIScale +Parent" This.Window.Hwnd
+		windowTitle := "Reset Button"
+		windowType := "LayeredWindow"
+		windowSettings := { AutoShow: 1 , X: 0 , Y: 535 , W: 200 , H: 120 }
+		cc := This.Window.Controls.ResetButton := New PopUpWindow_V3( windowOptions , windowTitle , windowType , windowSettings )
+		cc.DrawBitmap( This._Create_Graphics_ResetButton() , { X: 0 , Y: 0 , W: cc.W , H: cc.H } , dispose := 1 , autoUpdate := 1 )
+		This.Window.ControlHandles[ cc.Hwnd ] := cc
+		cc.Index := 5
+		cc.Name := "ResetButton"
+		;***************************************************
+		windowOptions := "+AlwaysOnTop -DPIScale +Parent" This.Window.Hwnd
+		windowTitle := "Done Button"
+		windowType := "LayeredWindow"
+		windowSettings := { AutoShow: 1 , X: 195 , Y: 535 , W: 200 , H: 120 }
+		cc := This.Window.Controls.DoneButton := New PopUpWindow_V3( windowOptions , windowTitle , windowType , windowSettings )
+		cc.DrawBitmap( This._Create_Graphics_DoneButton() , { X: 0 , Y: 0 , W: cc.W , H: cc.H } , dispose := 1 , autoUpdate := 1 )
+		This.Window.ControlHandles[ cc.Hwnd ] := cc
+		cc.Index := 6
+		cc.Name := "DoneButton"
+		;***************************************************
+		if( !This.Index && This.Index := 1 )
+			OnMessage( 0x201 , This._Click.Bind( This ) )
+		;~ This.HoverTimer := This._WatchLeaveHover.Bind( This )
+		;***************************************************
+	}
+	_Create_Graphics_IconButton( ScaleFactor := 1 , state := 0 ){
+		;Bitmap Created Using: HB Bitmap Maker
+		pBitmap := Gdip_CreateBitmap( 200 * ScaleFactor , 200 * ScaleFactor ) , G := Gdip_GraphicsFromImage( pBitmap ) , Gdip_SetSmoothingMode( G , 2 )
+		Brush := Gdip_BrushCreateSolid( "0xFF22262A" ) , Gdip_FillRectangle( G , Brush , -5 * ScaleFactor , -5 * ScaleFactor , 210 * ScaleFactor , 210 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFF32363A" ) , Gdip_FillRoundedRectangle( G , Brush , 5 * ScaleFactor , 5 * ScaleFactor , 190 * ScaleFactor , 190 * ScaleFactor , 5 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_CreateLineBrushFromRect( 5 * ScaleFactor , 5 * ScaleFactor , 190 * ScaleFactor , 190 * ScaleFactor , "0xFF52565a" , "0xFF000000" , 2 , 1 ) , Pen := Gdip_CreatePenFromBrush( Brush , 1 ) , Gdip_DeleteBrush( Brush ) , Gdip_DrawRoundedRectangle( G , Pen , 5 * ScaleFactor , 5 * ScaleFactor , 190 * ScaleFactor , 190 * ScaleFactor , 5 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		;inner background ( main background grade brush )
+		;~ Brush := Gdip_CreateLineBrushFromRect( 15 * ScaleFactor , 15 * ScaleFactor , 170 * ScaleFactor , 170 * ScaleFactor , "0xFF42464a" , "0xFF22262a" , 2 , 1 ) , Gdip_FillRectangle( G , Brush , 15 * ScaleFactor , 15 * ScaleFactor , 170 * ScaleFactor , 170 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_CreateLineBrushFromRect( 15 * ScaleFactor , 15 * ScaleFactor , 170 * ScaleFactor , 170 * ScaleFactor , "0xFF42464a" , ( state ) ? ( "0xFF336699" ) : ( "0xFF22262a" ) , 2 , 1 ) , Gdip_FillRectangle( G , Brush , 15 * ScaleFactor , 15 * ScaleFactor , 170 * ScaleFactor , 170 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		
+		Brush := Gdip_CreateLineBrushFromRect( 15 * ScaleFactor , 15 * ScaleFactor , 170 * ScaleFactor , 170 * ScaleFactor , "0xFF52565a" , "0xFF12161a" , 2 , 1 ) , Pen := Gdip_CreatePenFromBrush( Brush , 2 ) , Gdip_DeleteBrush( Brush ) , Gdip_DrawRectangle( G , Pen , 15 * ScaleFactor , 15 * ScaleFactor , 170 * ScaleFactor , 170 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		;eye
+		Brush := Gdip_BrushCreateSolid( "0xFF22262A" ) , Gdip_FillEllipse( G , Brush , 30 * ScaleFactor , 30 * ScaleFactor , 140 * ScaleFactor , 80 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_CreateLineBrushFromRect( 30 * ScaleFactor , 30 * ScaleFactor , 140 * ScaleFactor , 80 * ScaleFactor , "0xFF22262A" , "0xFF22262a" , 2 , 1 ) , Pen := Gdip_CreatePenFromBrush( Brush , 3 ) , Gdip_DeleteBrush( Brush ) , Gdip_DrawEllipse( G , Pen , 30 * ScaleFactor , 30 * ScaleFactor , 140 * ScaleFactor , 80 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		;icon background
+		Brush := Gdip_BrushCreateSolid( "0xFF02060a" ) , Gdip_FillEllipse( G , Brush , 65 * ScaleFactor , 35 * ScaleFactor , 70 * ScaleFactor , 70 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		
+		if( This.Icon ){
+			picBitmap := B64ToPBitmap( This.Icon )
+			Gdip_DrawImage( G , picBitmap , 68 * ScaleFactor , 38 * ScaleFactor , 64 * ScaleFactor , 64 * ScaleFactor )
+			Gdip_DisposeImage( picBitmap )
+		}
+		
+		Pen := Gdip_CreatePen( "0xFF22262a" , 2 ) , Gdip_DrawRectangle( G , Pen , 10 * ScaleFactor , 10 * ScaleFactor , 180 * ScaleFactor , 180 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		Pen := Gdip_CreatePen( "0xFF000000" , 1 ) , Gdip_DrawRectangle( G , Pen , 10 * ScaleFactor , 10 * ScaleFactor , 180 * ScaleFactor , 180 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		Brush := Gdip_BrushCreateSolid( "0xFF000000" ) , Gdip_TextToGraphics( G , "Change Icon" , "s" 24 * ScaleFactor " Center vCenter Bold c" Brush " x" 7 * ScaleFactor " y" 127 * ScaleFactor  , "segoe ui" , 190 * ScaleFactor , 50 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFFF0F0F0" ) , Gdip_TextToGraphics( G , "Change Icon" , "s" 24 * ScaleFactor " Center vCenter Bold c" Brush " x" 5 * ScaleFactor " y" 125 * ScaleFactor  , "segoe ui" , 190 * ScaleFactor , 50 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Gdip_DeleteGraphics( G )
+		return pBitmap
+	}
+	_Create_Graphics_HeaderButton( ScaleFactor := 1 , state := 0 ){
+		;Bitmap Created Using: HB Bitmap Maker
+		pBitmap := Gdip_CreateBitmap( 200 * ScaleFactor , 200 * ScaleFactor ) , G := Gdip_GraphicsFromImage( pBitmap ) , Gdip_SetSmoothingMode( G , 2 )
+		Brush := Gdip_BrushCreateSolid( "0xFF22262A" ) , Gdip_FillRectangle( G , Brush , -5 * ScaleFactor , -5 * ScaleFactor , 210 * ScaleFactor , 210 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFF32363A" ) , Gdip_FillRoundedRectangle( G , Brush , 5 * ScaleFactor , 5 * ScaleFactor , 190 * ScaleFactor , 190 * ScaleFactor , 5 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_CreateLineBrushFromRect( 5 * ScaleFactor , 5 * ScaleFactor , 190 * ScaleFactor , 190 * ScaleFactor , "0xFF52565a" , "0xFF000000" , 2 , 1 ) , Pen := Gdip_CreatePenFromBrush( Brush , 1 ) , Gdip_DeleteBrush( Brush ) , Gdip_DrawRoundedRectangle( G , Pen , 5 * ScaleFactor , 5 * ScaleFactor , 190 * ScaleFactor , 190 * ScaleFactor , 5 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		;inner background ( main background grade brush )
+		;~ Brush := Gdip_CreateLineBrushFromRect( 15 * ScaleFactor , 15 * ScaleFactor , 170 * ScaleFactor , 170 * ScaleFactor , "0xFF42464a" , "0xFF22262a" , 2 , 1 ) , Gdip_FillRectangle( G , Brush , 15 * ScaleFactor , 15 * ScaleFactor , 170 * ScaleFactor , 170 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_CreateLineBrushFromRect( 15 * ScaleFactor , 15 * ScaleFactor , 170 * ScaleFactor , 170 * ScaleFactor , "0xFF42464a" , ( !state ) ? ( "0xFF22262a" ) : ( "0xFF336699" ) , 2 , 1 ) , Gdip_FillRectangle( G , Brush , 15 * ScaleFactor , 15 * ScaleFactor , 170 * ScaleFactor , 170 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		
+		Brush := Gdip_CreateLineBrushFromRect( 15 * ScaleFactor , 15 * ScaleFactor , 170 * ScaleFactor , 170 * ScaleFactor , "0xFF52565a" , "0xFF12161a" , 2 , 1 ) , Pen := Gdip_CreatePenFromBrush( Brush , 2 ) , Gdip_DeleteBrush( Brush ) , Gdip_DrawRectangle( G , Pen , 15 * ScaleFactor , 15 * ScaleFactor , 170 * ScaleFactor , 170 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		Pen := Gdip_CreatePen( "0xFF22262a" , 2 ) , Gdip_DrawRectangle( G , Pen , 10 * ScaleFactor , 10 * ScaleFactor , 180 * ScaleFactor , 180 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		Pen := Gdip_CreatePen( "0xFF000000" , 1 ) , Gdip_DrawRectangle( G , Pen , 10 * ScaleFactor , 10 * ScaleFactor , 180 * ScaleFactor , 180 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		Brush := Gdip_BrushCreateSolid( "0xFF000000" ) , Gdip_TextToGraphics( G , "Category Name" , "s" 20 * ScaleFactor " Center vCenter Bold c" Brush " x" 7 * ScaleFactor " y" 27 * ScaleFactor  , "segoe ui" , 190 * ScaleFactor , 50 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFFF0F0F0" ) , Gdip_TextToGraphics( G , "Category Name" , "s" 20 * ScaleFactor " Center vCenter Bold c" Brush " x" 5 * ScaleFactor " y" 25 * ScaleFactor  , "segoe ui" , 190 * ScaleFactor , 50 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		;eye
+		Brush := Gdip_BrushCreateSolid( "0xFF22262A" ) , Gdip_FillEllipse( G , Brush , 30 * ScaleFactor , 95 * ScaleFactor , 140 * ScaleFactor , 80 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFF22262A" ) , Gdip_FillRoundedRectangle( G , Brush , 20 * ScaleFactor , 115 * ScaleFactor , 160 * ScaleFactor , 40 * ScaleFactor , 5 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		;edit area
+		Brush := Gdip_BrushCreateSolid( "0xFF000000" ) , Gdip_FillRectangle( G , Brush , 25 * ScaleFactor , 120 * ScaleFactor , 150 * ScaleFactor , 30 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFFFFFFFF" ) , Gdip_TextToGraphics( G , This.Header , "s" 18 * ScaleFactor " Center vCenter Bold c" Brush " x" 26 * ScaleFactor " y" 121 * ScaleFactor  , "segoe ui" , 150 * ScaleFactor , 30 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		
+		Gdip_DeleteGraphics( G )
+		return pBitmap
+	}
+	_Create_Graphics_ColorButton( ScaleFactor := 1 , state := 0 ){
+		;Bitmap Created Using: HB Bitmap Maker
+		pBitmap := Gdip_CreateBitmap( 395 * ScaleFactor , 200 * ScaleFactor ) , G := Gdip_GraphicsFromImage( pBitmap ) , Gdip_SetSmoothingMode( G , 2 )
+		Brush := Gdip_BrushCreateSolid( "0xFF22262A" ) , Gdip_FillRectangle( G , Brush , -5 * ScaleFactor , -5 * ScaleFactor , 410 * ScaleFactor , 210 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFF32363A" ) , Gdip_FillRoundedRectangle( G , Brush , 5 * ScaleFactor , 5 * ScaleFactor , 385 * ScaleFactor , 190 * ScaleFactor , 5 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_CreateLineBrushFromRect( 5 * ScaleFactor , 5 * ScaleFactor , 385 * ScaleFactor , 190 * ScaleFactor , "0xFF52565a" , "0xFF000000" , 2 , 1 ) , Pen := Gdip_CreatePenFromBrush( Brush , 1 ) , Gdip_DeleteBrush( Brush ) , Gdip_DrawRoundedRectangle( G , Pen , 5 * ScaleFactor , 5 * ScaleFactor , 385 * ScaleFactor , 190 * ScaleFactor , 5 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		;inner background ( main background grade brush )
+		;~ Brush := Gdip_CreateLineBrushFromRect( 15 * ScaleFactor , 15 * ScaleFactor , 365 * ScaleFactor , 170 * ScaleFactor , "0xFF42464a" , "0xFF22262a" , 2 , 1 ) , Gdip_FillRectangle( G , Brush , 15 * ScaleFactor , 15 * ScaleFactor , 365 * ScaleFactor , 170 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_CreateLineBrushFromRect( 15 * ScaleFactor , 15 * ScaleFactor , 365 * ScaleFactor , 170 * ScaleFactor , "0xFF42464a" , ( !state ) ? ( "0xFF22262a" ) : ( "0xFF336699" ) , 2 , 1 ) , Gdip_FillRectangle( G , Brush , 15 * ScaleFactor , 15 * ScaleFactor , 365 * ScaleFactor , 170 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		
+		
+		Brush := Gdip_CreateLineBrushFromRect( 15 * ScaleFactor , 15 * ScaleFactor , 365 * ScaleFactor , 170 * ScaleFactor , "0xFF52565a" , "0xFF12161a" , 2 , 1 ) , Pen := Gdip_CreatePenFromBrush( Brush , 2 ) , Gdip_DeleteBrush( Brush ) , Gdip_DrawRectangle( G , Pen , 15 * ScaleFactor , 15 * ScaleFactor , 365 * ScaleFactor , 170 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		Pen := Gdip_CreatePen( "0xFF22262a" , 2 ) , Gdip_DrawRectangle( G , Pen , 10 * ScaleFactor , 10 * ScaleFactor , 375 * ScaleFactor , 180 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		Pen := Gdip_CreatePen( "0x99000000" , 1 ) , Gdip_DrawRectangle( G , Pen , 10 * ScaleFactor , 10 * ScaleFactor , 375 * ScaleFactor , 180 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		Brush := Gdip_BrushCreateSolid( "0xFFF0F0F0" ) , Gdip_TextToGraphics( G , "Category Color" , "s" 20 * ScaleFactor " Center vCenter Bold c" Brush " x" 0 * ScaleFactor " y" 10 * ScaleFactor  , "Segoe ui" , 200 * ScaleFactor , 50 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFF22262a" ) , Gdip_FillRoundedRectangle( G , Brush , 20 * ScaleFactor , 58 * ScaleFactor , 160 * ScaleFactor , 30 * ScaleFactor , 5 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFF000000" ) , Gdip_FillRectangle( G , Brush , 55 * ScaleFactor , 63 * ScaleFactor , 90 * ScaleFactor , 20 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		;color text
+		Brush := Gdip_BrushCreateSolid( "0xFFF0F0F0" ) , Gdip_TextToGraphics( G , This.Color , "s" 14 * ScaleFactor " Center vCenter Bold c" Brush " x" 55 * ScaleFactor " y" 64 * ScaleFactor  , "Segoe ui" , 90 * ScaleFactor , 20 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFF" This.Color ) , Gdip_FillEllipse( G , Brush , 57 * ScaleFactor , 94 * ScaleFactor , 84 * ScaleFactor , 84 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		
+		
+		icon := "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"
+		picBitmap := B64ToPBitmap( icon )
+		Gdip_DrawImage( G , picBitmap , 62 * ScaleFactor , 99 * ScaleFactor , 74 * ScaleFactor , 74 * ScaleFactor )
+		Gdip_DisposeImage( picBitmap )
+		
+		
+		;eye
+		Brush := Gdip_BrushCreateSolid( "0xFF22262a" ) , Gdip_FillEllipse( G , Brush , 188 * ScaleFactor , 54 * ScaleFactor , 184 * ScaleFactor , 84 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Pen := Gdip_CreatePen( "0xFF" This.Color , 3 ) , Gdip_DrawEllipse( G , Pen , 188 * ScaleFactor , 54 * ScaleFactor , 184 * ScaleFactor , 84 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		
+		y := 22
+		index := 0
+		Loop, 4	{
+			x := 200
+			Loop, 4	{
+				Brush := Gdip_BrushCreateSolid( "0xFF" This.ColorsArray[ ++index ] ) , Gdip_FillRectangle( G , Brush , x * ScaleFactor , y * ScaleFactor , 35 * ScaleFactor , 35 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+				if( index != This.Window.Controls.ColorButton.SelectedControl )
+					Pen := Gdip_CreatePen( "0xFF22262a" , 3 ) , Gdip_DrawRectangle( G , Pen , x * ScaleFactor , y * ScaleFactor , 35 * ScaleFactor , 35 * ScaleFactor ) , Gdip_DeletePen( Pen )
+				else	
+					Pen := Gdip_CreatePen( "0xFF3399ff" , 3 ) , Gdip_DrawRectangle( G , Pen , x * ScaleFactor , y * ScaleFactor , 35 * ScaleFactor , 35 * ScaleFactor ) , Gdip_DeletePen( Pen )
+				
+				x += 40
+			}
+			y += 40
+		}
+		/*
+		Brush := Gdip_BrushCreateSolid( "0xFF000000" ) , Gdip_FillRectangle( G , Brush , 200 * ScaleFactor , 22 * ScaleFactor , 35 * ScaleFactor , 35 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFF4C4C4C" ) , Gdip_FillRectangle( G , Brush , 240 * ScaleFactor , 22 * ScaleFactor , 35 * ScaleFactor , 35 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFFFF0000" ) , Gdip_FillRectangle( G , Brush , 280 * ScaleFactor , 22 * ScaleFactor , 35 * ScaleFactor , 35 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFFFF6A00" ) , Gdip_FillRectangle( G , Brush , 320 * ScaleFactor , 22 * ScaleFactor , 35 * ScaleFactor , 35 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFFFFD800" ) , Gdip_FillRectangle( G , Brush , 200 * ScaleFactor , 62 * ScaleFactor , 35 * ScaleFactor , 35 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFFB6FF00" ) , Gdip_FillRectangle( G , Brush , 240 * ScaleFactor , 62 * ScaleFactor , 35 * ScaleFactor , 35 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFF4CFF00" ) , Gdip_FillRectangle( G , Brush , 280 * ScaleFactor , 62 * ScaleFactor , 35 * ScaleFactor , 35 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFF00FF21" ) , Gdip_FillRectangle( G , Brush , 320 * ScaleFactor , 62 * ScaleFactor , 35 * ScaleFactor , 35 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFF00FF90" ) , Gdip_FillRectangle( G , Brush , 200 * ScaleFactor , 102 * ScaleFactor , 35 * ScaleFactor , 35 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFF00FFFF" ) , Gdip_FillRectangle( G , Brush , 240 * ScaleFactor , 102 * ScaleFactor , 35 * ScaleFactor , 35 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFF0094FF" ) , Gdip_FillRectangle( G , Brush , 280 * ScaleFactor , 102 * ScaleFactor , 35 * ScaleFactor , 35 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFF0026FF" ) , Gdip_FillRectangle( G , Brush , 320 * ScaleFactor , 102 * ScaleFactor , 35 * ScaleFactor , 35 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFF4800FF" ) , Gdip_FillRectangle( G , Brush , 200 * ScaleFactor , 142 * ScaleFactor , 35 * ScaleFactor , 35 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFFB200FF" ) , Gdip_FillRectangle( G , Brush , 240 * ScaleFactor , 142 * ScaleFactor , 35 * ScaleFactor , 35 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFFFF00DC" ) , Gdip_FillRectangle( G , Brush , 280 * ScaleFactor , 142 * ScaleFactor , 35 * ScaleFactor , 35 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFFFFFFFF" ) , Gdip_FillRectangle( G , Brush , 320 * ScaleFactor , 142 * ScaleFactor , 35 * ScaleFactor , 35 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Pen := Gdip_CreatePen( "0xFF22262a" , 3 ) , Gdip_DrawRectangle( G , Pen , 200 * ScaleFactor , 22 * ScaleFactor , 35 * ScaleFactor , 35 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		Pen := Gdip_CreatePen( "0xFF22262a" , 3 ) , Gdip_DrawRectangle( G , Pen , 240 * ScaleFactor , 22 * ScaleFactor , 35 * ScaleFactor , 35 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		Pen := Gdip_CreatePen( "0xFF3399ff" , 3 ) , Gdip_DrawRectangle( G , Pen , 280 * ScaleFactor , 22 * ScaleFactor , 35 * ScaleFactor , 35 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		Pen := Gdip_CreatePen( "0xFF22262a" , 3 ) , Gdip_DrawRectangle( G , Pen , 320 * ScaleFactor , 22 * ScaleFactor , 35 * ScaleFactor , 35 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		Pen := Gdip_CreatePen( "0xFF22262a" , 3 ) , Gdip_DrawRectangle( G , Pen , 200 * ScaleFactor , 62 * ScaleFactor , 35 * ScaleFactor , 35 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		Pen := Gdip_CreatePen( "0xFF22262a" , 3 ) , Gdip_DrawRectangle( G , Pen , 240 * ScaleFactor , 62 * ScaleFactor , 35 * ScaleFactor , 35 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		Pen := Gdip_CreatePen( "0xFF22262a" , 3 ) , Gdip_DrawRectangle( G , Pen , 280 * ScaleFactor , 62 * ScaleFactor , 35 * ScaleFactor , 35 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		Pen := Gdip_CreatePen( "0xFF22262a" , 3 ) , Gdip_DrawRectangle( G , Pen , 320 * ScaleFactor , 62 * ScaleFactor , 35 * ScaleFactor , 35 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		Pen := Gdip_CreatePen( "0xFF22262a" , 3 ) , Gdip_DrawRectangle( G , Pen , 200 * ScaleFactor , 102 * ScaleFactor , 35 * ScaleFactor , 35 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		Pen := Gdip_CreatePen( "0xFF22262a" , 3 ) , Gdip_DrawRectangle( G , Pen , 240 * ScaleFactor , 102 * ScaleFactor , 35 * ScaleFactor , 35 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		Pen := Gdip_CreatePen( "0xFF22262a" , 3 ) , Gdip_DrawRectangle( G , Pen , 280 * ScaleFactor , 102 * ScaleFactor , 35 * ScaleFactor , 35 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		Pen := Gdip_CreatePen( "0xFF22262a" , 3 ) , Gdip_DrawRectangle( G , Pen , 320 * ScaleFactor , 102 * ScaleFactor , 35 * ScaleFactor , 35 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		Pen := Gdip_CreatePen( "0xFF22262a" , 3 ) , Gdip_DrawRectangle( G , Pen , 200 * ScaleFactor , 142 * ScaleFactor , 35 * ScaleFactor , 35 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		Pen := Gdip_CreatePen( "0xFF22262a" , 3 ) , Gdip_DrawRectangle( G , Pen , 240 * ScaleFactor , 142 * ScaleFactor , 35 * ScaleFactor , 35 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		Pen := Gdip_CreatePen( "0xFF22262a" , 3 ) , Gdip_DrawRectangle( G , Pen , 280 * ScaleFactor , 142 * ScaleFactor , 35 * ScaleFactor , 35 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		Pen := Gdip_CreatePen( "0xFF22262a" , 3 ) , Gdip_DrawRectangle( G , Pen , 320 * ScaleFactor , 142 * ScaleFactor , 35 * ScaleFactor , 35 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		*/
+		
+		
+		Gdip_DeleteGraphics( G )
+		return pBitmap
+	}
+	_Create_Graphics_TipButton( ScaleFactor := 1 , state := 0 ){
+		;Bitmap Created Using: HB Bitmap Maker
+		pBitmap := Gdip_CreateBitmap( 395 * ScaleFactor , 150 * ScaleFactor ) , G := Gdip_GraphicsFromImage( pBitmap ) , Gdip_SetSmoothingMode( G , 2 )
+		Brush := Gdip_BrushCreateSolid( "0xFF22262A" ) , Gdip_FillRectangle( G , Brush , -5 * ScaleFactor , -5 * ScaleFactor , 410 * ScaleFactor , 160 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFF32363A" ) , Gdip_FillRoundedRectangle( G , Brush , 5 * ScaleFactor , 5 * ScaleFactor , 385 * ScaleFactor , 140 * ScaleFactor , 5 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_CreateLineBrushFromRect( 5 * ScaleFactor , 5 * ScaleFactor , 385 * ScaleFactor , 190 * ScaleFactor , "0xFF52565a" , "0xFF000000" , 2 , 1 ) , Pen := Gdip_CreatePenFromBrush( Brush , 1 ) , Gdip_DeleteBrush( Brush ) , Gdip_DrawRoundedRectangle( G , Pen , 5 * ScaleFactor , 5 * ScaleFactor , 385 * ScaleFactor , 140 * ScaleFactor , 5 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		;inner background ( main background grade brush )
+		;~ Brush := Gdip_CreateLineBrushFromRect( 15 * ScaleFactor , 15 * ScaleFactor , 365 * ScaleFactor , 120 * ScaleFactor , "0xFF42464a" , "0xFF22262a" , 2 , 1 ) , Gdip_FillRectangle( G , Brush , 15 * ScaleFactor , 15 * ScaleFactor , 365 * ScaleFactor , 120 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_CreateLineBrushFromRect( 15 * ScaleFactor , 15 * ScaleFactor , 365 * ScaleFactor , 120 * ScaleFactor , "0xFF42464a" , ( !state ) ? ( "0xFF22262a" ) : ( "0xFF336699" ) , 2 , 1 ) , Gdip_FillRectangle( G , Brush , 15 * ScaleFactor , 15 * ScaleFactor , 365 * ScaleFactor , 120 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		
+		
+		
+		Brush := Gdip_CreateLineBrushFromRect( 15 * ScaleFactor , 15 * ScaleFactor , 365 * ScaleFactor , 170 * ScaleFactor , "0xFF52565a" , "0xFF12161a" , 2 , 1 ) , Pen := Gdip_CreatePenFromBrush( Brush , 2 ) , Gdip_DeleteBrush( Brush ) , Gdip_DrawRectangle( G , Pen , 15 * ScaleFactor , 15 * ScaleFactor , 365 * ScaleFactor , 120 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		Pen := Gdip_CreatePen( "0xFF22262a" , 2 ) , Gdip_DrawRectangle( G , Pen , 10 * ScaleFactor , 10 * ScaleFactor , 375 * ScaleFactor , 130 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		Pen := Gdip_CreatePen( "0x99000000" , 1 ) , Gdip_DrawRectangle( G , Pen , 10 * ScaleFactor , 10 * ScaleFactor , 375 * ScaleFactor , 130 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		Brush := Gdip_BrushCreateSolid( "0xFFF0F0F0" ) , Gdip_TextToGraphics( G , "Category Tip" , "s" 20 * ScaleFactor " Center vCenter Bold c" Brush " x" 0 * ScaleFactor " y" 10 * ScaleFactor  , "Segoe ui" , 200 * ScaleFactor , 50 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFF22262a" ) , Gdip_FillRoundedRectangle( G , Brush , 30 * ScaleFactor , 55 * ScaleFactor , 340 * ScaleFactor , 40 * ScaleFactor , 5 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFF02060a" ) , Gdip_FillRectangle( G , Brush , 40 * ScaleFactor , 60 * ScaleFactor , 320 * ScaleFactor , 30 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFFffffff" ) , Gdip_TextToGraphics( G , "Category Name" , "s" 12 * ScaleFactor " Center vCenter Bold c" Brush " x" 40 * ScaleFactor " y" 60 * ScaleFactor  , "Segoe ui" , 320 * ScaleFactor , 30 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFFAACCFF" ) , Gdip_TextToGraphics( G , "*The Category name is used as the tip if this is left empty" , "s" 12 * ScaleFactor " Center vCenter Bold c" Brush " x" 20 * ScaleFactor " y" 90 * ScaleFactor  , "Segoe ui" , 340 * ScaleFactor , 50 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Gdip_DeleteGraphics( G )
+		return pBitmap
+	}
+	_Create_Graphics_ResetButton( ScaleFactor := 1 , state := 0 ){
+		;Bitmap Created Using: HB Bitmap Maker
+		pBitmap := Gdip_CreateBitmap( 200 * ScaleFactor , 120 * ScaleFactor ) , G := Gdip_GraphicsFromImage( pBitmap ) , Gdip_SetSmoothingMode( G , 2 )
+		Brush := Gdip_BrushCreateSolid( "0xFF22262A" ) , Gdip_FillRectangle( G , Brush , -5 * ScaleFactor , -5 * ScaleFactor , 210 * ScaleFactor , 130 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFF32363A" ) , Gdip_FillRoundedRectangle( G , Brush , 5 * ScaleFactor , 5 * ScaleFactor , 190 * ScaleFactor , 110 * ScaleFactor , 5 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_CreateLineBrushFromRect( 5 * ScaleFactor , 5 * ScaleFactor , 190 * ScaleFactor , 110 * ScaleFactor , "0xFF52565a" , "0xFF000000" , 2 , 1 ) , Pen := Gdip_CreatePenFromBrush( Brush , 1 ) , Gdip_DeleteBrush( Brush ) , Gdip_DrawRoundedRectangle( G , Pen , 5 * ScaleFactor , 5 * ScaleFactor , 190 * ScaleFactor , 110 * ScaleFactor , 5 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		;inner background ( main background grade brush )
+		;~ Brush := Gdip_CreateLineBrushFromRect( 15 * ScaleFactor , 15 * ScaleFactor , 170 * ScaleFactor , 90 * ScaleFactor , "0xFF42464a" , "0xFF22262a" , 2 , 1 ) , Gdip_FillRectangle( G , Brush , 15 * ScaleFactor , 15 * ScaleFactor , 170 * ScaleFactor , 90 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_CreateLineBrushFromRect( 15 * ScaleFactor , 15 * ScaleFactor , 170 * ScaleFactor , 90 * ScaleFactor , "0xFF42464a" , ( !state ) ? ( "0xFF22262a" ) : ( "0xFF336699" ) , 2 , 1 ) , Gdip_FillRectangle( G , Brush , 15 * ScaleFactor , 15 * ScaleFactor , 170 * ScaleFactor , 90 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		
+		
+		
+		Brush := Gdip_CreateLineBrushFromRect( 15 * ScaleFactor , 15 * ScaleFactor , 170 * ScaleFactor , 90 * ScaleFactor , "0xFF52565a" , "0xFF12161a" , 2 , 1 ) , Pen := Gdip_CreatePenFromBrush( Brush , 2 ) , Gdip_DeleteBrush( Brush ) , Gdip_DrawRectangle( G , Pen , 15 * ScaleFactor , 15 * ScaleFactor , 170 * ScaleFactor , 90 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		Pen := Gdip_CreatePen( "0xFF22262a" , 2 ) , Gdip_DrawRectangle( G , Pen , 10 * ScaleFactor , 10 * ScaleFactor , 180 * ScaleFactor , 100 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		Pen := Gdip_CreatePen( "0xFF000000" , 1 ) , Gdip_DrawRectangle( G , Pen , 10 * ScaleFactor , 10 * ScaleFactor , 180 * ScaleFactor , 100 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		;eye
+		Brush := Gdip_BrushCreateSolid( "0xFF22262A" ) , Gdip_FillEllipse( G , Brush , 30 * ScaleFactor , 20 * ScaleFactor , 140 * ScaleFactor , 80 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFF22262A" ) , Gdip_FillRoundedRectangle( G , Brush , 20 * ScaleFactor , 40 * ScaleFactor , 160 * ScaleFactor , 40 * ScaleFactor , 5 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFF000000" ) , Gdip_TextToGraphics( G , "Reset Category" , "s" 20 * ScaleFactor " Center vCenter Bold c" Brush " x" 7 * ScaleFactor " y" 37 * ScaleFactor  , "segoe ui" , 190 * ScaleFactor , 50 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFFF0F0F0" ) , Gdip_TextToGraphics( G , "Reset Category" , "s" 20 * ScaleFactor " Center vCenter Bold c" Brush " x" 5 * ScaleFactor " y" 35 * ScaleFactor  , "segoe ui" , 190 * ScaleFactor , 50 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Gdip_DeleteGraphics( G )
+		return pBitmap
+	}
+	_Create_Graphics_DoneButton( ScaleFactor := 1 , state := 0 ){
+		;Bitmap Created Using: HB Bitmap Maker
+		pBitmap := Gdip_CreateBitmap( 200 * ScaleFactor , 120 * ScaleFactor ) , G := Gdip_GraphicsFromImage( pBitmap ) , Gdip_SetSmoothingMode( G , 2 )
+		Brush := Gdip_BrushCreateSolid( "0xFF22262A" ) , Gdip_FillRectangle( G , Brush , -5 * ScaleFactor , -5 * ScaleFactor , 210 * ScaleFactor , 130 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFF32363A" ) , Gdip_FillRoundedRectangle( G , Brush , 5 * ScaleFactor , 5 * ScaleFactor , 190 * ScaleFactor , 110 * ScaleFactor , 5 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_CreateLineBrushFromRect( 5 * ScaleFactor , 5 * ScaleFactor , 190 * ScaleFactor , 110 * ScaleFactor , "0xFF52565a" , "0xFF000000" , 2 , 1 ) , Pen := Gdip_CreatePenFromBrush( Brush , 1 ) , Gdip_DeleteBrush( Brush ) , Gdip_DrawRoundedRectangle( G , Pen , 5 * ScaleFactor , 5 * ScaleFactor , 190 * ScaleFactor , 110 * ScaleFactor , 5 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		;inner background ( main background grade brush )
+		;~ Brush := Gdip_CreateLineBrushFromRect( 15 * ScaleFactor , 15 * ScaleFactor , 170 * ScaleFactor , 90 * ScaleFactor , "0xFF42464a" , "0xFF22262a" , 2 , 1 ) , Gdip_FillRectangle( G , Brush , 15 * ScaleFactor , 15 * ScaleFactor , 170 * ScaleFactor , 90 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_CreateLineBrushFromRect( 15 * ScaleFactor , 15 * ScaleFactor , 170 * ScaleFactor , 90 * ScaleFactor , "0xFF42464a" , ( !state ) ? ( "0xFF22262a" ) : ( "0xFF336699" ) , 2 , 1 ) , Gdip_FillRectangle( G , Brush , 15 * ScaleFactor , 15 * ScaleFactor , 170 * ScaleFactor , 90 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		
+		
+		
+		Brush := Gdip_CreateLineBrushFromRect( 15 * ScaleFactor , 15 * ScaleFactor , 170 * ScaleFactor , 90 * ScaleFactor , "0xFF52565a" , "0xFF12161a" , 2 , 1 ) , Pen := Gdip_CreatePenFromBrush( Brush , 2 ) , Gdip_DeleteBrush( Brush ) , Gdip_DrawRectangle( G , Pen , 15 * ScaleFactor , 15 * ScaleFactor , 170 * ScaleFactor , 90 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		Pen := Gdip_CreatePen( "0xFF22262a" , 2 ) , Gdip_DrawRectangle( G , Pen , 10 * ScaleFactor , 10 * ScaleFactor , 180 * ScaleFactor , 100 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		Pen := Gdip_CreatePen( "0xFF000000" , 1 ) , Gdip_DrawRectangle( G , Pen , 10 * ScaleFactor , 10 * ScaleFactor , 180 * ScaleFactor , 100 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		;eye
+		Brush := Gdip_BrushCreateSolid( "0xFF22262A" ) , Gdip_FillEllipse( G , Brush , 30 * ScaleFactor , 20 * ScaleFactor , 140 * ScaleFactor , 80 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFF22262A" ) , Gdip_FillRoundedRectangle( G , Brush , 20 * ScaleFactor , 40 * ScaleFactor , 160 * ScaleFactor , 40 * ScaleFactor , 5 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFF000000" ) , Gdip_TextToGraphics( G , "Done" , "s" 22 * ScaleFactor " Center vCenter Bold c" Brush " x" 7 * ScaleFactor " y" 37 * ScaleFactor  , "segoe ui" , 190 * ScaleFactor , 50 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFFF0F0F0" ) , Gdip_TextToGraphics( G , "Done" , "s" 22 * ScaleFactor " Center vCenter Bold c" Brush " x" 5 * ScaleFactor " y" 35 * ScaleFactor  , "segoe ui" , 190 * ScaleFactor , 50 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Gdip_DeleteGraphics( G )
+		return pBitmap
+	}
+	
+}
+;&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&;
+;&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&;
+;*****		       New Section             *****;
+;&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&;
+;&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&;
+class CategoryWindowClass	{
+	
+	SetUp( x , y , w , h , color , parentHwnd , data , paintBackground := 1 , scaleFactor := 1 ){
+		This.Scale := scaleFactor
+		windowOptions := "+AlwaysOnTop -DPIScale +Parent" parentHwnd
+		windowTitle := "Categories Window"
+		windowType := "LayeredWindow"
+		windowSettings := { AutoShow: 1 , X: x , Y: y , W: w , H: h , Color: color , Alpha: "01" }
+		This.Window := New PopUpWindow_V3( windowOptions , windowTitle , windowType , windowSettings )
+		This.Window.Controls := {}
+		This.Window.ControlHandles := []
+		;***************************************************
+		windowOptions := "+AlwaysOnTop -DPIScale +Parent" This.Window.Hwnd
+		windowTitle := "SelectedTab"
+		windowType := "LayeredWindow"
+		windowSettings := { AutoShow: 1 , X: x , Y: 30 , W: 200 , H: 150 }
+		This.Window.Controls.SelectedControl := New PopUpWindow_V3( windowOptions , windowTitle , windowType , windowSettings )
+		This.Window.ControlHandles[ This.Window.Controls.SelectedControl.Hwnd ] := This.Window.Controls.SelectedControl
+		This.Window.Controls.SelectedControl.Index := 1
+		;***************************************************
+		This.Window.Controls.Tabs := []
+		x := 0
+		Loop, 16	{
+			windowTitle := "Tab " A_Index
+			windowType := "LayeredWindow"
+			windowSettings := { AutoShow: 1 , X: x , Y: 0 , W: 200 , H: 150 }
+			This.Window.Controls.Tabs[ A_Index ] := New PopUpWindow_V3( windowOptions , windowTitle , windowType , windowSettings )
+			This.Window.ControlHandles[ This.Window.Controls.Tabs[ A_Index ].Hwnd ] := This.Window.Controls.Tabs[ A_Index ]
+			This.Window.Controls.Tabs[ A_Index ].Index := A_Index + 1
+			x += ( This.Window.W - 200 ) / 16 + 6
+		}
+		;***************************************************
+		This.Create_TabBitmaps( data )
+		This._Draw_ALL_Tabs( selectedTab := 1 )
+		;***************************************************
+		;***************************************************
+		;***************************************************
+		;***************************************************
+		;***************************************************
+		
+	}
+	_Draw_ALL_Tabs( selectedTab := 1 ){
+		Loop, 16	{
+			cc := This.Window.Controls.Tabs[ A_Index ]
+			cc.DrawBitmap( This.TabBitmaps[ A_Index ].DefaultBitmap , { X: 0 , Y: 0 , W: cc.W , H: cc.H } , 0 , 1 )
+		}
+		This.Window.Controls.SelectedControl.DrawBitmap( This.TabBitmaps[ selectedTab ].SelectedBitmap , { X: 0 , Y: 0 , W: This.Window.Controls.SelectedControl.W , H: This.Window.Controls.SelectedControl.H } , 0 , 1 )
+	}
+	Create_TabBitmaps( data ){
+		if( This.TabBitmaps.Length() )
+			This._Dispose_ALL_TabBitmaps()
+		
+		This.TabBitmaps := []
+		Loop, 16	{
+			;------------------------
+			cc := data.Categories
+			color := cc.Colors[ A_Index ]
+			header := cc.Headers[ A_Index ]
+			icon := cc.Icons[ A_Index ]
+			scalefactor := This.Scale
+			;------------------------
+			
+			This.TabBitmaps[ A_Index ] := {}
+			This.TabBitmaps[ A_Index ].DefaultBitmap := This._Create_TabBitmap_Graphics( A_Index , color , header , subcats , icon , scalefactor, 0 )
+			This.TabBitmaps[ A_Index ].SelectedBitmap := This._Create_TabBitmap_Graphics( A_Index , color , header , subcats , icon , scalefactor, 1 )
+		}
+	}
+	_Dispose_ALL_TabBitmaps(){
+		Loop, 16	{
+			Gdip_DisposeImage( This.TabBitmaps[ A_Index ].DefaultBitmap() )
+			Gdip_DisposeImage( This.TabBitmaps[ A_Index ].SelectedBitmap() )
+		}
+		This.TabBitmaps := ""
+	}
+	UpdateTabs( selectedTab := 1 ){
+		static lastTab := ""
+		if( lastTab )
+			This.Window.Controls.Tabs[ lastTab ].Show()
+		lastTab := selectedTab
+		This.Window.Controls.Tabs[ selectedTab ].Hide()
+		This.Window.Controls.SelectedControl.X := This.Window.Controls.Tabs[ selectedTab ].X
+		This.Window.Controls.SelectedControl.ClearWindow()
+		This.Window.Controls.SelectedControl.DrawBitmap( This.TabBitmaps[ selectedTab ].SelectedBitmap , { X: 0 , Y: 0 , W: This.Window.Controls.SelectedControl.W , H: This.Window.Controls.SelectedControl.H } , 0 , 1 )
+	}
+	Draw_CategoryWindow( selectedTab := 1 ){
+		This.Window.ClearWindow()
+		This.Window.PaintBackground( { Color: "0x" This.Window.Alpha This.Window.Color , X: 2 , Y: 2 , W: This.Window.W - 4 , H: This.Window.H - 4 } , 1 ) 
+		This.UpdateTabs( selectedTab )
+	}
+	_Create_TabBitmap_Graphics( index , color , header , subcats , icon := "" , scalefactor := 1 , state := 0 ){
+		;Bitmap Created Using: HB Bitmap Maker
+		pBitmap := Gdip_CreateBitmap( 200 * ScaleFactor , 150 * ScaleFactor ) , G := Gdip_GraphicsFromImage( pBitmap ) , Gdip_SetSmoothingMode( G , 2 )
+		
+		;Main Background
+		Brush := Gdip_BrushCreateSolid( "0xFF" color ) , Gdip_FillRoundedRectangle( G , Brush , 5 * ScaleFactor , 5 * ScaleFactor , 130 * ScaleFactor , 100 * ScaleFactor , 10 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		
+		;Main Background 2
+		Brush := Gdip_CreateLineBrushFromRect( 5 * ScaleFactor , 5 * ScaleFactor , 130 * ScaleFactor , 100 * ScaleFactor , "0xFF" color , "0xaa000000" , 1 , 1 ) , Gdip_FillRoundedRectangle( G , Brush , 5 * ScaleFactor , 5 * ScaleFactor , 130 * ScaleFactor , 100 * ScaleFactor , 10 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_CreateLineBrushFromRect( 5 * ScaleFactor , 5 * ScaleFactor , 130 * ScaleFactor , 100 * ScaleFactor , "0xFFF0F0F0" , "0xFF000000" , 1 , 1 ) , Pen := Gdip_CreatePenFromBrush( Brush , 3 ) , Gdip_DeleteBrush( Brush ) , Gdip_DrawRoundedRectangle( G , Pen , 5 * ScaleFactor , 5 * ScaleFactor , 130 * ScaleFactor , 100 * ScaleFactor , 10 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		
+		;Icon Background
+		Brush := Gdip_CreateLineBrushFromRect( 15 * ScaleFactor , 35 * ScaleFactor , 64 * ScaleFactor , 64 * ScaleFactor , "0xff" color , "0xff000000" , 1 , 1 ) , Gdip_FillEllipse( G , Brush , 15 * ScaleFactor , 35 * ScaleFactor , 64 * ScaleFactor , 64 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		
+		if( icon ){
+			
+			picBitmap := B64ToPBitmap( icon )
+			Gdip_DrawImage( G , picBitmap , 17 * ScaleFactor , 37 * ScaleFactor , 60 * ScaleFactor , 60 * ScaleFactor ) 
+			Gdip_DisposeImage( picBitmap )
+		
+		}
+		;sub-cat amount
+		;~ if( header )
+			;~ Brush := Gdip_BrushCreateSolid( "0xFFffffff" ) , Gdip_TextToGraphics( G , subcats , "s" 36 * ScaleFactor " Center vCenter Bold c" Brush " x" 85 * ScaleFactor " y" 47 * ScaleFactor  , "Segoe ui" , 40 * ScaleFactor , 40 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+			Brush := Gdip_BrushCreateSolid( "0xFFffffff" ) , Gdip_TextToGraphics( G , index , "s" ( ( strLen( index ) > 1 ) ? ( 24 * ScaleFactor ) : ( 36 * ScaleFactor ) ) " Center vCenter Bold c" Brush " x" 85 * ScaleFactor " y" 47 * ScaleFactor  , "Segoe ui" , 40 * ScaleFactor , 40 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		
+		Pen := Gdip_CreatePen( "0xFF000000" , 3 ) , Gdip_DrawRoundedRectangle( G , Pen , 10 * ScaleFactor , 10 * ScaleFactor , 120 * ScaleFactor , 20 * ScaleFactor , 5 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		
+		;Cat Name background
+		Brush := Gdip_CreateLineBrushFromRect( 10 * ScaleFactor , 10 * ScaleFactor , 120 * ScaleFactor , 20 * ScaleFactor , ( header = "" ) ? ( "0xFF880000" ) : ( "0xFF00aa00" ) , "0xFF000000" , 1 , 1 ) , Gdip_FillRoundedRectangle( G , Brush , 10 * ScaleFactor , 10 * ScaleFactor , 120 * ScaleFactor , 20 * ScaleFactor , 5 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		
+		;Category text
+		Brush := Gdip_BrushCreateSolid( "0xFFffffff" ) , Gdip_TextToGraphics( G , Header , "s" 12 * ScaleFactor " Center vCenter Bold c" Brush " x" 10 * ScaleFactor " y" 10 * ScaleFactor  , "Segoe ui" , 120 * ScaleFactor , 20 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		
+		;edit button background
+		if( state ){
+			Brush := Gdip_CreateLineBrushFromRect( 15 * ScaleFactor , 110 * ScaleFactor , 110 * ScaleFactor , 30 * ScaleFactor , "0xFF62666a" , "0xFF02060a" , 1 , 1 ) , Gdip_FillRoundedRectangle( G , Brush , 15 * ScaleFactor , 110 * ScaleFactor , 110 * ScaleFactor , 30 * ScaleFactor , 5 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+			Brush := Gdip_CreateLineBrushFromRect( 15 * ScaleFactor , 110 * ScaleFactor , 110 * ScaleFactor , 30 * ScaleFactor , "0xffffffff" , "0xff000000" , 1 , 1 ) , Pen := Gdip_CreatePenFromBrush( Brush , 1 ) , Gdip_DeleteBrush( Brush ) , Gdip_DrawRoundedRectangle( G , Pen , 15 * ScaleFactor , 110 * ScaleFactor , 110 * ScaleFactor , 30 * ScaleFactor , 5 * ScaleFactor ) , Gdip_DeletePen( Pen )
+			Brush := Gdip_CreateLineBrushFromRect( 0 * ScaleFactor , 114 * ScaleFactor , 100 * ScaleFactor , 22 * ScaleFactor , "0x9952565a" , "0x99000000" , 1 , 1 ) , Gdip_FillRectangle( G , Brush , 30 * ScaleFactor , 114 * ScaleFactor , 80 * ScaleFactor , 22 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+			Brush := Gdip_CreateLineBrushFromRect( 0 * ScaleFactor , 114 * ScaleFactor , 100 * ScaleFactor , 20 * ScaleFactor , "0x44000000" , "0x44777777" , 1 , 1 ) , Pen := Gdip_CreatePenFromBrush( Brush , 1 ) , Gdip_DeleteBrush( Brush ) , Gdip_DrawRectangle( G , Pen , 19 * ScaleFactor , 114 * ScaleFactor , 100 * ScaleFactor , 23 * ScaleFactor ) , Gdip_DeletePen( Pen )
+			;edit button text
+			Brush := Gdip_BrushCreateSolid( "0xFFF0F0F0" ) , Gdip_TextToGraphics( G , "Edit" , "s" 10 * ScaleFactor " Center vCenter Bold c" Brush " x" 30 * ScaleFactor " y" 117 * ScaleFactor  , "Segoe ui" , 80 * ScaleFactor , 16 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		}
+		
+		Gdip_DeleteGraphics( G )
+		return pBitmap
+	}
+	
+}
+;&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&;
+;&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&;
+;*****		       New Section             *****;
+;&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&;
+;&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&;
+
+class RadialMenuEditor	{
+	
+	_Hover( l , w , msg , hwnd ){
+		
+		if( !This.HoveredControl && CategoryEditWindowClass.Window.ControlHandles[ hwnd ].Name ){
+			This.HoveredControl := hwnd
+			cc := CategoryEditWindowClass.Window.ControlHandles[ hwnd ]
+			cc.DrawBitmap( CategoryEditWindowClass[ "_Create_Graphics_" cc.Name ]( This.Scale , 1 ) , { X: 0 * This.Scale , Y: 0 * This.Scale , W: cc.W * This.Scale , H: cc.H * This.Scale } , dispose := 1 , autoUpdate := 1 )
+			timer := This.HoverTimer
+			SetTimer, % timer , 100
+			;~ ToolTip, % "Tip:`n" cc.Name
+		}
+	}
+	_WatchLeaveHover(){
+		MouseGetPos,,,, ctrl , 2
+		if( ctrl != This.HoveredControl ){
+			cc := CategoryEditWindowClass.Window.ControlHandles[ This.HoveredControl ]
+			cc.DrawBitmap( CategoryEditWindowClass[ "_Create_Graphics_" cc.Name ]( This.Scale , 0 ) , { X: 0 * This.Scale , Y: 0 * This.Scale , W: cc.W * This.Scale , H: cc.H * This.Scale } , dispose := 1 , autoUpdate := 1 )
+			timer := This.HoverTimer
+			SetTimer, % timer , Off
+			sleep, 30
+			This.HoveredControl := ""
+		}
+	}
+	_Click( l , w , msg , hwnd ){
+		cc := This.CategoriesWindow.Window.ControlHandles[ Hwnd ]
+		if( cc.Index ){
+			CoordMode, mouse, client
+			MouseGetPos, x, y, , ctrl , 2
+			x -= This.CategoriesWindow.Window.X
+			y -= This.CategoriesWindow.Window.Y
+			if( cc.Index >= 2 ){
+				This.SelectedCategory := cc.Index - 1
+				This.CategoriesWindow.UpdateTabs( cc.Index - 1 )
+				if( This.Data.Categories.Headers[ This.SelectedCategory ] != "" ){
+					SubCategoryWindowClass.Window.Show()
+					Loop, 9	{
+						icon 	:= This.Data.Categories[ This.SelectedCategory ].Icons[ A_Index ]
+						header 	:= This.Data.Categories[ This.SelectedCategory ].Headers[ A_Index ]
+						pBitmap := This.SubCategoriesWindow._Create_Graphics_IconButton( ( This.SelectedSubCategory = A_Index ) ? ( 1 ) : ( 0 ) , header , icon , This.Scale )
+						dd := This.SubCategoriesWindow.Window.Controls.Icons[ A_Index ]
+						dd.ClearWindow()
+						dd.DrawBitmap( pBitmap , { X: 0 , Y: 0 , W: dd.W , H: dd.H } , 1 , 1 )
+						
+					}
+					dd := This.SubCategoriesWindow.Window.Controls.TextControl
+					pBitmap := This.SubCategoriesWindow._Create_Graphics_TextControl( ScaleFactor := 1 )
+					dd.DrawBitmap( pBitmap , { X: 0 , Y: 0 , W: dd.W , H: dd.H } , 1 , 1 )
+			
+				}else{
+					;~ SoundBeep, 555
+					SubCategoryWindowClass.Window.Hide()
+				}
+			}else if( y >= 135 ){
+				This.Goto_Edit_Category()
+			}
+			return 0
+		}
+		cc := This.SubCategoriesWindow.Window.ControlHandles[ hwnd ]
+		if( cc.Index ){
+			If( cc.Index <= 9 ){
+				last 	:= ( This.SelectedSubCategory ) ? ( This.SelectedSubCategory ) : ( 1 )
+				cat 	:= This.SelectedCategory
+				subcat 	:= This.SelectedSubCategory := This.SubCategoriesWindow.SelectedSubCategory := cc.Index
+				
+				;refresh last
+				dd := This.SubCategoriesWindow.Window.Controls.Icons[ last ]
+				
+				icon 	:= This.Data.Categories[ cat ].Icons[ last ]
+				header 	:= This.Data.Categories[ cat ].Headers[ last ]
+				pBitmap := This.SubCategoriesWindow._Create_Graphics_IconButton( 0 , header , icon , This.Scale )
+				
+				
+				dd.ClearWindow()
+				dd.DrawBitmap( pBitmap , { X: 0 , Y: 0 , W: dd.W , H: dd.H } , 1 , 1 )
+				
+				icon 	:= This.Data.Categories[ cat ].Icons[ subcat ]
+				header 	:= This.Data.Categories[ cat ].Headers[ subcat ]
+				pBitmap := This.SubCategoriesWindow._Create_Graphics_IconButton( 1 , header , icon , This.Scale )
+				
+				
+				cc.ClearWindow()
+				cc.DrawBitmap( pBitmap , { X: 0 , Y: 0 , W: cc.W , H: cc.H } , 1 , 1 )
+				
+				;~ SoundBeep
+				;~ ToolTip, % last
+				;~ ToolTip, % cc.Name
+				dd := This.SubCategoriesWindow.Window.Controls.TextControl
+				pBitmap := This.SubCategoriesWindow._Create_Graphics_TextControl( ScaleFactor := 1 )
+				dd.DrawBitmap( pBitmap , { X: 0 , Y: 0 , W: dd.W , H: dd.H } , 1 , 1 )
+			}else if( cc.Name = "EditButton" ){
+				ToolTip, % "Tip:`n" cc.Name
+				SetTimer, TipOff, -1000
+			}
+			
+			return 0
+		}
+	}
+	
+	Goto_Edit_Category(){
+		
+		This.Window.Hide()
+		
+		cc := This.Data.Categories
+		
+		header := cc.Headers[ This.SelectedCategory ]
+		color := cc.Colors[ This.SelectedCategory ]
+		icon := cc.Icons[ This.SelectedCategory ]
+		tip := cc.Tips[ This.SelectedCategory ]
+		This.CategoryEditWindow := CategoryEditWindowClass
+		;~ CategoryEditWindowClass.SetUp( Header , Color , Icon , tip )
+		This.CategoryEditWindow.SetUp( Header , Color , Icon , tip )
+		
+		WinWaitClose, % "ahk_id " CategoryEditWindowClass.Window.Hwnd
+		RadialMenuEditor.Window.Show()
+		dd := RadialMenuEditor.Data.Categories
+		selected := This.SelectedCategory
+		
+		if( CategoryEditWindowClass.Header ){
+			color := CategoryEditWindowClass.Color
+			Header := CategoryEditWindowClass.Header
+			Icon := CategoryEditWindowClass.Icon
+			tip := CategoryEditWindowClass.Tip
+			
+			
+			Write_Category_Details( selected , color , header , icon , tip )
+			
+			cc.Headers[ This.SelectedCategory ] := header
+			cc.Colors[ This.SelectedCategory ] := color
+			cc.Icons[ This.SelectedCategory ] := icon
+			cc.Tips[ This.SelectedCategory ] := tip
+		}
+		if( CategoryEditWindowClass.Reset ){
+			
+			
+			ResetCategoryData( This.Data , This.SelectedCategory )
+			color := CategoryEditWindowClass.Color
+			Header := CategoryEditWindowClass.Header
+			Icon := CategoryEditWindowClass.Icon
+			tip := CategoryEditWindowClass.Tip
+			cc.Headers[ This.SelectedCategory ] := header
+			cc.Colors[ This.SelectedCategory ] := color
+			cc.Icons[ This.SelectedCategory ] := icon
+			cc.Tips[ This.SelectedCategory ] := tip
+			Write_Category_Details( selected , color , header , icon , tip )
+		}
+		CategoryWindowClass.Create_TabBitmaps( This.data )
+		CategoryWindowClass._Draw_ALL_Tabs( selected )
+		CategoryWindowClass.UpdateTabs( selected )
+			
+		
+	}
+	PointInRect( x , y , rect ){
+		if( x >= rect.X && x <= rect.X + rect.W && y >= rect.Y && y <= rect.Y + rect.H )
+			return 1 
+		return 0
+	}
+	;********************************************
+	SetUp(){
+		
+		This.Data := Read_ini_Data()
+		
+		This.Scale := 1
+		This.SelectedCategory := 1
+		This.SelectedSubCategory := 1
+		This.SelectedStep := 1
+		This.SelectedQuickList := 1
+		This.SelectedStepType := 1
+		This.SelectedStepList := 1
+		This.SelectedStep := 1
+		
+		This.HoveredControl := ""
+		
+		This._Create_Window()
+		
+		This._Create_Window_Children()
+		
+		This.HoverTimer := This._WatchLeaveHover.Bind( This )
+	}
+	;********************************************
+	_Create_Window(){
+		local winOptions := "+AlwaysOnTop -DPIScale"
+		local winTitle := "Radial Menu v7"
+		local winType := "NormalWindow"
+		local winObj := {}
+		winObj.X := "Center"
+		winObj.Y := "Center"
+		winObj.W := 900
+		winObj.H := 510
+		winObj.AutoShow := 1
+		winObj.Color := "22262a"
+		This.Window := New PopUpWindow_V3( winOptions , winTitle , winType , winObj )
+		OnMessage( 0x201 , This._Click.Bind( This ) )
+		OnMessage( 0x200 , This._Hover.Bind( This ) )
+	}	
+	_Create_Window_Children(){
+		;%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+		This.CategoriesWindow := CategoryWindowClass
+		This.CategoriesWindow.SetUp( 10 , 10 , This.Window.W - 230 , 180 , "336699" , This.Window.Hwnd , This.data )
+		This.CategoriesWindow.Draw_CategoryWindow( 1 )
+		;%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+		This.SubCategoriesWindow := SubCategoryWindowClass
+		This.SubCategoriesWindow.SetUp( 10 , This.CategoriesWindow.Window.Y + This.CategoriesWindow.Window.H + 10 , 300 , 300 , "336699" , This.Window.Hwnd , This.data )
+		;%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+		;%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+		;%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+		;%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+		;%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+		;%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	}
+	
+}
+
+class SubCategoryWindowClass	{
+	
+	SetUp( x , y , w , h , color , parentHwnd , data , paintBackground := 1 , scaleFactor := 1 ){
+		
+		This.Color := color 
+		This.Data := data
+		This.SelectedSubCategory := RadialMenuEditor.SelectedSubCategory
+		
+		This.Scale := scaleFactor
+		windowOptions := "+AlwaysOnTop -DPIScale +Parent" parentHwnd
+		windowTitle := "Sub-Categories Window"
+		windowType := "LayeredWindow"
+		windowSettings := { AutoShow: 1 , X: x , Y: y , W: w , H: h , Color: color , Alpha: "66" }
+		This.Window := New PopUpWindow_V3( windowOptions , windowTitle , windowType , windowSettings )
+		This.Window.PaintBackground( { Color: "0xFF32363a" , X: 2 , Y: 2 , W: This.Window.W - 4 , H: This.Window.H - 4 , Roundness: 10 } , AutoUpdate := 1 ) ;{ Color: 0xFF000000 , X: 2 , Y: 2 , W: This.Window.W - 4 , H: This.Window.H - 4 , Roundness: 10 }
+		This.Window.PaintBackground( { Color: "0xFF22262a" , X: 4 , Y: 4 , W: This.Window.W - 8 , H: This.Window.H - 8 , Roundness: 10 } , AutoUpdate := 1 ) ;{ Color: 0xFF000000 , X: 2 , Y: 2 , W: This.Window.W - 4 , H: This.Window.H - 4 , Roundness: 10 }
+		
+		
+		;~ This.Window.PaintBackground( { Color: "0xFF12161a" , X: 50 , Y: 60 , W: 230 , H: 230 , Roundness: 10 } , AutoUpdate := 1 ) ;{ Color: 0xFF000000 , X: 2 , Y: 2 , W: This.Window.W - 4 , H: This.Window.H - 4 , Roundness: 10 }
+		This.Window.PaintBackground( { Color: "0xFF32363a" , X: 48 , Y: 58 , W: 234 , H: 234 , Roundness: 10 } , AutoUpdate := 1 ) ;{ Color: 0xFF000000 , X: 2 , Y: 2 , W: This.Window.W - 4 , H: This.Window.H - 4 , Roundness: 10 }
+		
+		
+		This.Window.Controls := {}
+		This.Window.ControlHandles := []
+		;***************************************************
+		This.Window.Controls.Icons := []
+		cat := RadialMenuEditor.SelectedCategory
+		subCat := RadialMenuEditor.SelectedSubCategory
+		y := 60
+		index := 0
+		Loop, 3	{
+			x := 50 + 80 + 80
+			Loop, 3	{
+				
+				windowOptions := "+AlwaysOnTop -DPIScale +Parent" This.Window.Hwnd
+				windowTitle := "SubCat Icon " 10 - ++index
+				windowType := "LayeredWindow"
+				windowSettings := { AutoShow: 1 , X: x , Y: y , W: 70 , H: 70 , Color: color , Alpha: "66" }
+				
+				This.Window.Controls.Icons[ 10 - index ] := New PopUpWindow_V3( windowOptions , windowTitle , windowType , windowSettings )
+				This.Window.Controls.Icons[ 10 - index ].Index := 10 - index
+				This.Window.Controls.Icons[ 10 - index ].Name := "icon " 10 - index
+				This.Window.ControlHandles[ This.Window.Controls.Icons[ 10 - index ].Hwnd ] := This.Window.Controls.Icons[ 10 - index ]
+				;~ if( 10 - index = subcat )
+					;~ This.Window.Controls.Icons[ 10 - index ].PaintBackground( { Color: "0xFFffff00" , X: 2 , Y: 2 , W: This.Window.Controls.Icons[ index ].W - 4 , H: This.Window.Controls.Icons[ index ].H - 4 , Roundness: 5 } , AutoUpdate := 1 )
+				
+				
+				icon 	:= This.Data.Categories[ cat ].Icons[ 10 - index ]
+				header 	:= This.Data.Categories[ cat ].Headers[ 10 - index ]
+				if( 10 - index = subcat )
+					selected := 1
+				else 
+					selected := 0
+				
+				This.Window.Controls.Icons[ 10 - index ].DrawBitmap( This._Create_Graphics_IconButton( selected , header , icon , ScaleFactor := 1 ) , { X: 0 , Y: 0 , W: This.Window.Controls.Icons[ 10 - index ].W , H: This.Window.Controls.Icons[ 10 - index ].H } , dispose := 1 , autoUpdate := 1 )
+				
+				x -= 80
+				
+			}
+			y += 80
+		}
+		;***************************************************
+		windowOptions := "+AlwaysOnTop -DPIScale +Parent" This.Window.Hwnd
+		windowTitle := "SubCat Edit Button"
+		windowType := "LayeredWindow"
+		windowSettings := { AutoShow: 1 , X: 5 , Y: 60 , W: 40 , H: This.Window.H - 70 , Color: color , Alpha: "66" }
+		This.Window.Controls.EditButton := New PopUpWindow_V3( windowOptions , windowTitle , windowType , windowSettings )
+		This.Window.Controls.EditButton.Index := 10
+		This.Window.Controls.EditButton.Name := "EditButton"
+		This.Window.ControlHandles[ This.Window.Controls.EditButton.Hwnd ] := This.Window.Controls.EditButton
+		;~ This.Window.Controls.EditButton.PaintBackground( { Color: "0xFF" color , X: 1 , Y: 1 , W: This.Window.Controls.EditButton.W - 2 , H: This.Window.Controls.EditButton.H - 2 , Roundness: 10 } , AutoUpdate := 1 ) 
+		pBitmap := This._Create_Graphics_EditButton( ScaleFactor := 1 )
+		This.Window.Controls.EditButton.DrawBitmap( pBitmap , { X: 0 , Y: 0 , W: This.Window.Controls.EditButton.W , H: This.Window.Controls.EditButton.H } , 1 , 1 )
+			
+		;***************************************************
+		windowOptions := "+AlwaysOnTop -DPIScale +Parent" This.Window.Hwnd
+		windowTitle := "SubCat Text control"
+		windowType := "LayeredWindow"
+		windowSettings := { AutoShow: 1 , X: 7 , Y: 7 , W: This.Window.W - 14 , H: 50 , Color: color , Alpha: "66" }
+		This.Window.Controls.TextControl := New PopUpWindow_V3( windowOptions , windowTitle , windowType , windowSettings )
+		pBitmap := This._Create_Graphics_TextControl( ScaleFactor := 1 )
+		This.Window.Controls.TextControl.DrawBitmap( pBitmap , { X: 0 , Y: 0 , W: This.Window.Controls.TextControl.W , H: This.Window.Controls.TextControl.H } , 1 , 1 )
+				
+		;***************************************************
+		;***************************************************
+		;*************************************************** 
+	}
+	
+	_Create_Graphics_IconButton( selected , header , icon , ScaleFactor := 1 ){
+		;Bitmap Created Using: HB Bitmap Maker
+		pBitmap := Gdip_CreateBitmap( 70 * ScaleFactor , 70 * ScaleFactor ) , G := Gdip_GraphicsFromImage( pBitmap ) , Gdip_SetSmoothingMode( G , 2 )
+		
+		
+		;~ Brush := Gdip_CreateLineBrushFromRect( 2 * ScaleFactor , 2 * ScaleFactor , 66 * ScaleFactor , 66 * ScaleFactor , () ? () : ( "0xFF52565a" ) , "0xFF22262a" , 2 , 1 ) , Gdip_FillEllipse( G , Brush , 2 * ScaleFactor , 2 * ScaleFactor , 66 * ScaleFactor , 66 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_CreateLineBrushFromRect( 2 * ScaleFactor , 2 * ScaleFactor , 66 * ScaleFactor , 66 * ScaleFactor , ( header != "" ) ? ( "0xFF33aa00" ) : ( "0xFF880000" ) , "0xFF22262a" , 2 , 1 ) , Gdip_FillEllipse( G , Brush , 2 * ScaleFactor , 2 * ScaleFactor , 66 * ScaleFactor , 66 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		;~ Pen := Gdip_CreatePen( "0xFF336699" , 3 ) , Gdip_DrawEllipse( G , Pen , 10 * ScaleFactor , 10 * ScaleFactor , 80 * ScaleFactor , 80 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		
+		;~ Pen := Gdip_CreatePen( "0xFF" This.Color , 3 ) , Gdip_DrawEllipse( G , Pen , 2 * ScaleFactor , 2 * ScaleFactor , 66 * ScaleFactor , 66 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		
+		if( selected )
+			Pen := Gdip_CreatePen( "0xFF" This.Color , 3 ) , Gdip_DrawEllipse( G , Pen , 2 * ScaleFactor , 2 * ScaleFactor , 66 * ScaleFactor , 66 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		else	
+			Pen := Gdip_CreatePen( "0xFF12161a" , 3 ) , Gdip_DrawEllipse( G , Pen , 2 * ScaleFactor , 2 * ScaleFactor , 66 * ScaleFactor , 66 * ScaleFactor ) , Gdip_DeletePen( Pen )
+		
+		if( Icon ){
+			picBitmap := B64ToPBitmap( Icon )
+			Gdip_DrawImage( G , picBitmap , 5 * ScaleFactor , 5 * ScaleFactor , 60 * ScaleFactor , 60 * ScaleFactor ) 
+			Gdip_DisposeImage( picBitmap )
+		}
+		
+		Gdip_DeleteGraphics( G )
+		return pBitmap
+	}
+	
+	_Create_Graphics_TextControl( ScaleFactor := 1 ){
+		local cc := This.Window.Controls.TextControl
+		;Bitmap Created Using: HB Bitmap Maker
+		pBitmap := Gdip_CreateBitmap( cc.W * ScaleFactor , cc.H * ScaleFactor ) , G := Gdip_GraphicsFromImage( pBitmap ) , Gdip_SetSmoothingMode( G , 2 )
+		
+		
+		;~ Brush := Gdip_CreateLineBrushFromRect( 2 * ScaleFactor , 2 * ScaleFactor , ( cc.W - 4 ) * ScaleFactor , ( cc.H - 4 ) * ScaleFactor , "0xFF52565a" , "0xFF22262a" , 2 , 1 ) , Gdip_FillRoundedRectangle( G , Brush , 2 * ScaleFactor , 2 * ScaleFactor , ( cc.W - 4 ) * ScaleFactor , ( cc.H - 4 ) * ScaleFactor , 5 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFF12161a" ) , Gdip_FillRoundedRectangle( G , Brush , 2 * ScaleFactor , 2 * ScaleFactor , ( cc.W - 4 ) * ScaleFactor , ( cc.H - 4 ) * ScaleFactor , 5 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		
+		
+		
+		
+		
+		;~ Brush := Gdip_BrushCreateSolid( "0xFFffffff" ) , Gdip_TextToGraphics( G , "SubCategory:" , "s" 18 * ScaleFactor "  vCenter Bold c" Brush " x" 20 * ScaleFactor " y" 2 * ScaleFactor  , "Segoe ui" , cc.W - 20 * ScaleFactor , cc.H * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		Brush := Gdip_BrushCreateSolid( "0xFF3399ff" ) , Gdip_TextToGraphics( G , "Sub-Category:" , "s" 16 * ScaleFactor "  vCenter Bold c" Brush " x" 10 * ScaleFactor " y" 2 * ScaleFactor  , "Segoe ui" , cc.W - 20 * ScaleFactor , cc.H * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		
+		header := RadialMenuEditor.Data.Categories[ RadialMenuEditor.SelectedCategory ].Headers[ RadialMenuEditor.SelectedSubCategory ]
+		
+		
+		
+		Brush := Gdip_BrushCreateSolid( "0xFFFFFFFF" ) , Gdip_TextToGraphics( G , header , "s" 18 * ScaleFactor "  vCenter Bold Center c" Brush " x" 120 * ScaleFactor " y" 2 * ScaleFactor  , "Segoe ui" , cc.W - 120 * ScaleFactor , cc.H * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		
+		
+		
+		
+		
+		;~ Brush := Gdip_BrushCreateSolid( "0xFFffffff" ) , Gdip_TextToGraphics( G , "Category Name" , "s" 12 * ScaleFactor " Center vCenter Bold c" Brush " x" 40 * ScaleFactor " y" 60 * ScaleFactor  , "Segoe ui" , 320 * ScaleFactor , 30 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		
+		
+		Gdip_DeleteGraphics( G )
+		return pBitmap
+	}
+	_Create_Graphics_EditButton( ScaleFactor := 1 ){
+		local cc := This.Window.Controls.EditButton
+		;Bitmap Created Using: HB Bitmap Maker
+		pBitmap := Gdip_CreateBitmap( cc.W * ScaleFactor , cc.H * ScaleFactor ) , G := Gdip_GraphicsFromImage( pBitmap ) , Gdip_SetSmoothingMode( G , 2 )
+		Brush := Gdip_CreateLineBrushFromRect( 2 * ScaleFactor , 2 * ScaleFactor , ( cc.W - 4 ) * ScaleFactor , ( cc.H - 4 ) * ScaleFactor , "0xFF52565a" , "0xFF22262a" , 2 , 1 ) , Gdip_FillRoundedRectangle( G , Brush , 2 * ScaleFactor , 2 * ScaleFactor , ( cc.W - 4 ) * ScaleFactor , ( cc.H - 4 ) * ScaleFactor , 5 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		
+		
+		
+		
+		
+		;~ Brush := Gdip_BrushCreateSolid( "0xFFffffff" ) , Gdip_TextToGraphics( G , "SubCategory:" , "s" 18 * ScaleFactor "  vCenter Bold c" Brush " x" 20 * ScaleFactor " y" 2 * ScaleFactor  , "Segoe ui" , cc.W - 20 * ScaleFactor , cc.H * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		;~ var := "`nE`nD`nI`nT"
+		;~ Brush := Gdip_BrushCreateSolid( "0xFF3399ff" ) , Gdip_TextToGraphics( G , var , "s" 18 * ScaleFactor "  vCenter Bold c" Brush " x" 5 * ScaleFactor " y" 2 * ScaleFactor  , "Segoe ui" , cc.W - 20 * ScaleFactor , cc.H * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		
+		icon := "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"
+		
+		picBitmap := B64ToPBitmap( Icon )
+		w := Gdip_GetImageWidth( picBitmap )
+		h := Gdip_GetImageHeight( picBitmap )
+		Gdip_DrawImage( G , picBitmap , -15 * ScaleFactor , 70 * ScaleFactor , w * ScaleFactor * .8 , h * ScaleFactor * .8 ) 
+		Gdip_DisposeImage( picBitmap )
+		
+		;~ Brush := Gdip_BrushCreateSolid( "0xFFffffff" ) , Gdip_TextToGraphics( G , "Category Name" , "s" 12 * ScaleFactor " Center vCenter Bold c" Brush " x" 40 * ScaleFactor " y" 60 * ScaleFactor  , "Segoe ui" , 320 * ScaleFactor , 30 * ScaleFactor ) , Gdip_DeleteBrush( Brush )
+		
+		
+		Gdip_DeleteGraphics( G )
+		return pBitmap
+	}
+}
+
+/*
+class WindowControlsClass	{
+	
+	_Create_SelectedTabControl( obj ){
+		local winOptions := "+AlwaysOnTop -DPIScale +Parent" obj.Hwnd
+		local winTitle := "StepWindow"
+		local winType := "LayeredWindow"
+		local winObj := {}
+		winObj.X := 0
+		winObj.Y := 35
+		winObj.W := 200
+		winObj.H := 150
+		winObj.AutoShow := 1
+		winObj.Color := "22262a"
+		obj.SelectedTabControl := New PopUpWindow_V3( winOptions , winTitle , winType , winObj )
+		
+	}
+	_Create_CategoryTabControls( obj ){
+		
+		local winOptions := "+AlwaysOnTop -DPIScale +Parent" obj.Hwnd
+		local winTitle := "StepWindow"
+		local winType := "LayeredWindow"
+		local winObj := {}
+		
+		x := 0
+		Loop, 16	{
+			winObj := {}
+			winObj.X := x
+			winObj.Y := 0
+			winObj.W := 200
+			winObj.H := 150
+			winObj.AutoShow := 1
+			winObj.Color := "22262a"
+			
+			obj.Controls[ A_Index ] := New PopUpWindow_V3( winOptions , winTitle , winType , winObj )
+			obj.ControlHandles[ obj.Controls[ A_Index ].Hwnd ] := obj.Controls[ A_Index ]
+			obj.Controls[ A_Index ].Index := A_Index
+			x += ( obj.W - 200 ) / 16 + 6
+		}
+	}
+}
+*/
+
+;&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+;&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+;&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+Read_ini_Data(){
+	
+	;~ local path := A_ScriptDir "\Radial Menu v7 Data.ini"			;<<<<<<<<<<<<<<----------------------------------Use this path once the script is ready
+	local path := A_ScriptDir "\Radial Menu v7 Data.ini"
+	local RadialMenuData := {}
+	RadialMenuData.Categories := {}
+	
+	RadialMenuData.Categories.Headers := []
+	Loop, 16	{
+		IniRead, value , % path , Category_Headers, % A_Index , % A_Space
+		RadialMenuData.Categories.Headers[ A_Index ] := value
+	}
+	
+	RadialMenuData.Categories.Icons := []
+	Loop, 16	{
+		IniRead, value , % path , Category_Icons, % A_Index , % A_Space
+		RadialMenuData.Categories.Icons[ A_Index ] := value
+	}
+	
+	RadialMenuData.Categories.Colors := []
+	Loop, 16	{
+		IniRead, value , % path , Category_Colors, % A_Index , % A_Space
+		RadialMenuData.Categories.Colors[ A_Index ] := value
+	}
+	
+	Loop, 16	{
+		
+		if( RadialMenuData.Categories.Headers[ A_Index ] != "" ){
+			
+			CategoryIndex := A_Index
+			RadialMenuData.Categories[ CategoryIndex ] := {}
+			
+			RadialMenuData.Categories[ CategoryIndex ].Headers := []
+			
+			Loop, 9	{
+				IniRead, value , % path , % "Category_" CategoryIndex "_Headers" , % A_Index , % A_Space
+				RadialMenuData.Categories[ CategoryIndex ].Headers[ A_Index ] := value
+			}
+			
+			RadialMenuData.Categories[ CategoryIndex ].Icons := []
+			Loop, 9	{
+				IniRead, value , % path , % "Category_" CategoryIndex "_Icons" , % A_Index , % A_Space
+				RadialMenuData.Categories[ CategoryIndex ].Icons[ A_Index ] := value
+			}
+			
+			Loop, 9	{
+				
+				if( RadialMenuData.Categories[ CategoryIndex ].Headers[ A_Index ] != "" ){
+					
+					SubCategoryIndex := A_Index
+					RadialMenuData.Categories[ CategoryIndex ][ SubCategoryIndex ] := {}
+					
+					IniRead, value , % path , % "Category_" CategoryIndex "_" SubCategoryIndex "_OutputString" , OutputString , % A_Space
+					RadialMenuData.Categories[ CategoryIndex ][ SubCategoryIndex ].OutputString := value
+					
+					Loop, 99	{
+						
+						StepIndex := A_Index 
+						RadialMenuData.Categories[ CategoryIndex ][ SubCategoryIndex ][ StepIndex ] := {}
+						
+						IniRead, value , % path , % "Category_" CategoryIndex "_" SubCategoryIndex "_" StepIndex "_StepHeader" , StepHeader , % A_Space
+						RadialMenuData.Categories[ CategoryIndex ][ SubCategoryIndex ][ StepIndex ].StepHeader := value
+						
+						if( RadialMenuData.Categories[ CategoryIndex ][ SubCategoryIndex ][ StepIndex ].StepHeader != "" ){
+						
+							RadialMenuData.Categories[ CategoryIndex ][ SubCategoryIndex ][ StepIndex ].Headers := []
+							Loop, 9	{
+								IniRead, value , % path , % "Category_" CategoryIndex "_" SubCategoryIndex "_" StepIndex "_Headers" , % A_Index , % A_Space
+								RadialMenuData.Categories[ CategoryIndex ][ SubCategoryIndex ][ StepIndex ].Headers[ A_Index ] := value
+								
+							}
+							
+							RadialMenuData.Categories[ CategoryIndex ][ SubCategoryIndex ][ StepIndex ].Icons := []
+							Loop, 9	{
+								IniRead, value , % path , % "Category_" CategoryIndex "_" SubCategoryIndex "_" StepIndex "_Icons" , % A_Index , % A_Space
+								RadialMenuData.Categories[ CategoryIndex ][ SubCategoryIndex ][ StepIndex ].Icons[ A_Index ] := value
+							}
+							
+							RadialMenuData.Categories[ CategoryIndex ][ SubCategoryIndex ][ StepIndex ].Values := []
+							Loop, 9	{
+								IniRead, value , % path , % "Category_" CategoryIndex "_" SubCategoryIndex "_" StepIndex "_Values" , % A_Index , % A_Space
+								RadialMenuData.Categories[ CategoryIndex ][ SubCategoryIndex ][ StepIndex ].Values[ A_Index ] := value
+							}
+							
+							IniRead, value , % path , % "Category_" CategoryIndex "_" SubCategoryIndex "_" StepIndex "_Type" , StepType , % A_Space
+							RadialMenuData.Categories[ CategoryIndex ][ SubCategoryIndex ][ StepIndex ].Type := value
+							
+						}
+					}
+				}
+			}
+		}
+	}
+	return RadialMenuData
+}
+;&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+;&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+;&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+Write_ini_Defaults(){
+	
+	;~ local path := A_ScriptDir "\Radial Menu v7 Data.ini"			;<<<<<<<<<<<<<<----------------------------------Use this path once the script is ready
+	local path := A_ScriptDir "\Radial Menu v7 Data.ini"
+	local RadialMenuData := {}
+	local stepCount := 0
+	local totalCount := 21345
+	
+	local defaultColors := [ "000407" , "fdfeff" , "8C7E73" , "8080C0" , "C0C0C0" , "808080" , "FF0000" , "FFFF00" , "80FF00" , "00FF40" , "00FFFF" , "0000FF" , "0080FF" , "8080FF" , "FF80FF" , "FF0080" ]
+	
+	
+	
+	IfExist, % path 
+	{
+		MsgBox, 4, Warrning , The ini data file already exists. If you proceed it will delete the old file and start fresh. `nDo you want to delete the old file?
+		IfMsgBox, No
+		{
+			SoundBeep
+			SoundBeep
+			SoundBeep
+			return
+		}
+		FileDelete, % path
+	}
+	
+	RadialMenuData.Categories := {}
+	
+	RadialMenuData.Categories.Headers := []
+	Loop, 16	{
+		RadialMenuData.Categories.Headers[ A_Index ] := ""
+		IniWrite, % RadialMenuData.Categories.Headers[ A_Index ] , % path , Category_Headers, % A_Index 
+		ToolTip, % "Step: " ++StepCount " / Total Steps: " totalCount
+	}
+	
+	RadialMenuData.Categories.Icons := []
+	Loop, 16	{
+		RadialMenuData.Categories.Icons[ A_Index ] := ""
+		IniWrite, % RadialMenuData.Categories.Icons[ A_Index ] , % path , Category_Icons, % A_Index 
+		ToolTip, % "Step: " ++StepCount " / Total Steps: " totalCount 
+	}
+	
+	RadialMenuData.Categories.Colors := []
+	Loop, 16	{
+		RadialMenuData.Categories.Colors[ A_Index ] := defaultColors[ A_Index ]
+		IniWrite, % RadialMenuData.Categories.Colors[ A_Index ] , % path , Category_Colors, % A_Index 
+		ToolTip, % "Step: " ++StepCount " / Total Steps: " totalCount 
+	}
+	
+	Loop, 16	{
+		CategoryIndex := A_Index
+		RadialMenuData.Categories[ CategoryIndex ] := {}
+		
+		RadialMenuData.Categories[ CategoryIndex ].Headers := []
+		
+		Loop, 9	{
+			
+			RadialMenuData.Categories[ CategoryIndex ].Headers[ A_Index ] := ""
+			IniWrite, % RadialMenuData.Categories[ CategoryIndex ].Headers[ A_Index ] , % path , % "Category_" CategoryIndex "_Headers" , % A_Index
+			ToolTip, % "Step: " ++StepCount " / Total Steps: " totalCount
+		}
+		
+		
+		RadialMenuData.Categories[ CategoryIndex ].Icons := []
+		Loop, 9	{
+			RadialMenuData.Categories[ CategoryIndex ].Icons[ A_Index ] := ""
+			IniWrite, % RadialMenuData.Categories[ CategoryIndex ].Icons[ A_Index ] , % path , % "Category_" CategoryIndex "_Icons" , % A_Index
+			ToolTip, % "Step: " ++StepCount " / Total Steps: " totalCount
+		}
+		
+		Loop, 9	{
+			SubCategoryIndex := A_Index
+			RadialMenuData.Categories[ CategoryIndex ][ SubCategoryIndex ] := {}
+			
+			RadialMenuData.Categories[ CategoryIndex ][ SubCategoryIndex ].OutputString := ""
+			IniWrite, % RadialMenuData.Categories[ CategoryIndex ][ SubCategoryIndex ].OutputString , % path , % "Category_" CategoryIndex "_" SubCategoryIndex "_OutputString" , OutputString
+			ToolTip, % "Step: " ++StepCount " / Total Steps: " totalCount
+			
+			
+			Loop, 5	{
+				StepIndex := A_Index 
+				RadialMenuData.Categories[ CategoryIndex ][ SubCategoryIndex ][ StepIndex ] := {}
+				
+				RadialMenuData.Categories[ CategoryIndex ][ SubCategoryIndex ][ StepIndex ].StepHeader := ""
+				IniWrite, % RadialMenuData.Categories[ CategoryIndex ][ SubCategoryIndex ][ StepIndex ].StepHeader , % path , % "Category_" CategoryIndex "_" SubCategoryIndex "_" StepIndex "_StepHeader" , StepHeader
+				ToolTip, % "Step: " ++StepCount " / Total Steps: " totalCount
+				
+				RadialMenuData.Categories[ CategoryIndex ][ SubCategoryIndex ][ StepIndex ].Headers := []
+				Loop, 9	{
+					RadialMenuData.Categories[ CategoryIndex ][ SubCategoryIndex ][ StepIndex ].Headers[ A_Index ] := ""
+					IniWrite, % RadialMenuData.Categories[ CategoryIndex ][ SubCategoryIndex ][ StepIndex ].Headers[ A_Index ] , % path , % "Category_" CategoryIndex "_" SubCategoryIndex "_" StepIndex "_Headers" , % A_Index
+					ToolTip, % "Step: " ++StepCount " / Total Steps: " totalCount
+					
+				}
+				
+				RadialMenuData.Categories[ CategoryIndex ][ SubCategoryIndex ][ StepIndex ].Icons := []
+				Loop, 9	{
+					RadialMenuData.Categories[ CategoryIndex ][ SubCategoryIndex ][ StepIndex ].Icons[ A_Index ] := ""
+					IniWrite, % RadialMenuData.Categories[ CategoryIndex ][ SubCategoryIndex ][ StepIndex ].Icons[ A_Index ] , % path , % "Category_" CategoryIndex "_" SubCategoryIndex "_" StepIndex "_Icons" , % A_Index
+					ToolTip, % "Step: " ++StepCount " / Total Steps: " totalCount
+				}
+				
+				RadialMenuData.Categories[ CategoryIndex ][ SubCategoryIndex ][ StepIndex ].Values := []
+				Loop, 9	{
+					RadialMenuData.Categories[ CategoryIndex ][ SubCategoryIndex ][ StepIndex ].Values[ A_Index ] := ""
+					IniWrite, % RadialMenuData.Categories[ CategoryIndex ][ SubCategoryIndex ][ StepIndex ].Values[ A_Index ] , % path , % "Category_" CategoryIndex "_" SubCategoryIndex "_" StepIndex "_Values" , % A_Index
+					ToolTip, % "Step: " ++StepCount " / Total Steps: " totalCount
+				}
+				
+				RadialMenuData.Categories[ CategoryIndex ][ SubCategoryIndex ][ StepIndex ].Type := ""
+				IniWrite, % RadialMenuData.Categories[ CategoryIndex ][ SubCategoryIndex ][ StepIndex ].Type , % path , % "Category_" CategoryIndex "_" SubCategoryIndex "_" StepIndex "_Type" , StepType
+				ToolTip, % "Step: " ++StepCount " / Total Steps: " totalCount
+			}
+		}
+	}
+	ToolTip, % "Step: " ++StepCount " / Total Steps: " totalCount
+	SoundBeep
+	SoundBeep
+	Sleep, 2000
+	ToolTip
+	
+}
+
+B64ToPBitmap( Input ){
+	local ptr , uptr , pBitmap , pStream , hData , pData , Dec , DecLen , B64
+	VarSetCapacity( B64 , strlen( Input ) << !!A_IsUnicode )
+	B64 := Input
+	If !DllCall("Crypt32.dll\CryptStringToBinary" ( ( A_IsUnicode ) ? ( "W" ) : ( "A" ) ), Ptr := A_PtrSize ? "Ptr" : "UInt" , &B64, "UInt", 0, "UInt", 0x01, Ptr, 0, "UIntP", DecLen, Ptr, 0, Ptr, 0)
+		Return False
+	VarSetCapacity( Dec , DecLen , 0 )
+	If !DllCall("Crypt32.dll\CryptStringToBinary" (A_IsUnicode ? "W" : "A"), Ptr, &B64, "UInt", 0, "UInt", 0x01, Ptr, &Dec, "UIntP", DecLen, Ptr, 0, Ptr, 0)
+		Return False
+	DllCall("Kernel32.dll\RtlMoveMemory", Ptr, pData := DllCall("Kernel32.dll\GlobalLock", Ptr, hData := DllCall( "Kernel32.dll\GlobalAlloc", "UInt", 2,  UPtr := A_PtrSize ? "UPtr" : "UInt" , DecLen, UPtr), UPtr) , Ptr, &Dec, UPtr, DecLen)
+	DllCall("Kernel32.dll\GlobalUnlock", Ptr, hData)
+	DllCall("Ole32.dll\CreateStreamOnHGlobal", Ptr, hData, "Int", True, Ptr "P", pStream)
+	DllCall("Gdiplus.dll\GdipCreateBitmapFromStream",  Ptr, pStream, Ptr "P", pBitmap)
+	return pBitmap
+}
+
+;******************************************************************************************************************
+;******************************************************************************************************************
+Gdip_EncodeBitmapTo64string(pBitmap, ext, Quality=75) { ;Excised from https://www.autohotkey.com/boards/viewtopic.php?t=36047
+	if Ext not in BMP,DIB,RLE,JPG,JPEG,JPE,JFIF,GIF,TIF,TIFF,PNG
+        return -1
+	Extension := "." Ext
+	DllCall("gdiplus\GdipGetImageEncodersSize", "uint*", nCount, "uint*", nSize)
+	VarSetCapacity(ci, nSize)
+	DllCall("gdiplus\GdipGetImageEncoders", "uint", nCount, "uint", nSize, Ptr, &ci)
+	if !(nCount && nSize)
+		return -2
+	Loop, % nCount {
+		sString := StrGet(NumGet(ci, (idx := (48+7*A_PtrSize)*(A_Index-1))+32+3*A_PtrSize), "UTF-16")
+		if !InStr(sString, "*" Extension)
+			continue
+		pCodec := &ci+idx
+		break
+	}
+	if !pCodec
+		return -3
+	if (Quality != 75){
+		Quality := (Quality < 0) ? 0 : (Quality > 100) ? 100 : Quality
+		if Extension in .JPG,.JPEG,.JPE,.JFIF
+		{
+			DllCall("gdiplus\GdipGetEncoderParameterListSize", Ptr, pBitmap, Ptr, pCodec, "uint*", nSize)
+			VarSetCapacity(EncoderParameters, nSize, 0)
+			DllCall("gdiplus\GdipGetEncoderParameterList", Ptr, pBitmap, Ptr, pCodec, "uint", nSize, Ptr, &EncoderParameters)
+			Loop, % NumGet(EncoderParameters, "UInt") {
+				elem := (24+(A_PtrSize ? A_PtrSize : 4))*(A_Index-1) + 4 + (pad := A_PtrSize = 8 ? 4 : 0)
+				if (NumGet(EncoderParameters, elem+16, "UInt") = 1) && (NumGet(EncoderParameters, elem+20, "UInt") = 6){
+					p := elem+&EncoderParameters-pad-4
+					NumPut(Quality, NumGet(NumPut(4, NumPut(1, p+0)+20, "UInt")), "UInt")
+					break
+				}
+			}
+		}
+	}
+	DllCall("ole32\CreateStreamOnHGlobal", "ptr",0, "int",true, "ptr*",pStream)
+	DllCall("gdiplus\GdipSaveImageToStream", "ptr",pBitmap, "ptr",pStream, "ptr",pCodec, "uint",p ? p : 0)
+    DllCall("ole32\GetHGlobalFromStream", "ptr",pStream, "uint*",hData)
+	pData := DllCall("GlobalLock", "ptr",hData, "uptr")
+	nSize := DllCall("GlobalSize", "uint",pData)
+	VarSetCapacity(Bin, nSize, 0)
+	DllCall("RtlMoveMemory", "ptr",&Bin , "ptr",pData , "uint",nSize)
+	DllCall("GlobalUnlock", "ptr",hData)
+	DllCall(NumGet(NumGet(pStream + 0, 0, "uptr") + (A_PtrSize * 2), 0, "uptr"), "ptr",pStream)
+	DllCall("GlobalFree", "ptr",hData)
+	DllCall("Crypt32.dll\CryptBinaryToString", "ptr",&Bin, "uint",nSize, "uint",0x01, "ptr",0, "uint*",base64Length)
+	VarSetCapacity(base64, base64Length*2, 0)				
+	;*************************	
+	;https://www.autohotkey.com/boards/viewtopic.php?f=76&t=101960&p=453367#p453387
+	DllCall("Crypt32.dll\CryptBinaryToString", "ptr",&Bin, "uint",nSize, "uint", 0x40000001 , "ptr",&base64, "uint*",base64Length) ; [ 0x40000001 = CRYPT_STRING_NOCRLF ( 0x40000000 ) And CRYPT_STRING_BASE64 ( 0x00000001 ) ]
+	;*************************
+	Bin := ""
+	VarSetCapacity(Bin, 0)
+	VarSetCapacity(base64, -1)
+	return  base64
+}
+;******************************************************************************************************************
+;******************************************************************************************************************
+
